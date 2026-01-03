@@ -13,18 +13,18 @@ class Teams(models.Model):
         return self.teamName
 
 class Firereport(models.Model):
-    FullName = models.CharField(max_length=250, null=True)
-    MobileNumber = models.CharField(max_length=12, null=True)
-    Location = models.CharField(max_length=200, null=True)
-    Message = models.CharField(max_length=200, null=True)
-    AssignTo = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
-    Status = models.CharField(max_length=150, null=True)
-    Postingdate = models.DateTimeField(auto_now_add=True)
-    AssignedTime = models.CharField(max_length=150, null=True)
+    FullName = models.CharField(max_length=250, null=True, db_column='fullname')
+    MobileNumber = models.CharField(max_length=12, null=True, db_column='mobilenumber')
+    Location = models.CharField(max_length=200, null=True, db_column='location')
+    Message = models.CharField(max_length=200, null=True, db_column='message')
+    AssignTo = models.ForeignKey(User, on_delete=models.CASCADE, null=True, db_column='assignto_id')
+    Status = models.CharField(max_length=150, null=True, db_column='status')
+    Postingdate = models.DateTimeField(auto_now_add=True, db_column='postingdate')
+    AssignedTime = models.CharField(max_length=150, null=True, db_column='assignedtime')
     #AssignedTime = models.DateTimeField(null=True)
-    UpdationDate = models.DateTimeField(null=True)
-    Account_id = models.IntegerField(default=0)
-    AssignBy = models.IntegerField(default=0)
+    UpdationDate = models.DateTimeField(null=True, db_column='updationdate')
+    Account_id = models.IntegerField(default=0, db_column='account_id')
+    AssignBy = models.IntegerField(default=0, db_column='assignby')
 
     def __str__(self):
         return self.FullName
@@ -34,7 +34,7 @@ class Firetequesthistory(models.Model):
     status = models.CharField(max_length=200, null=True)
     remark = models.CharField(max_length=250, null=True)
     postingDate = models.DateTimeField(auto_now_add=True)
-    AssignTo = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    AssignTo = models.ForeignKey(User, on_delete=models.CASCADE, null=True, db_column='assignto_id')
     AssignBy = models.IntegerField(default=0)
     def __str__(self):
         return self.status
