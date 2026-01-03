@@ -2613,20 +2613,23 @@ def customer_updatepage(request, Cust_id):
     generation_meter_records = GenerationMeter.objects.filter(comp_name=selected_comp_name)
     generation_ct_records = GenerationCT.objects.filter(comp_name=selected_comp_name)
 
-    # CODE FOr MSEB Status
-    customer = get_object_or_404(Customer, Cust_id=Cust_id)
-    # customer = Customer.objects.filter(new_customer_id=request.user.id)
-    mseb_data = MSEB.objects.filter(customer=customer).first()
-    records = MSEB.objects.filter(customer=customer).first()
-    progress_data = None
     # CODE FOR MSEB Status
     customer = get_object_or_404(Customer, Cust_id=Cust_id)
     mseb_data = MSEB.objects.filter(customer=customer).first()
-
+    records = mseb_data
+    
+    # Initialize variables
+    installation_date1 = False
+    progress_data = {}
+    progress_warranty = {}
+    remaining_days_inv_warranty = None
+    current_date = datetime.date.today()
 
     if mseb_data is not None:
-        installation_date1 = mseb_data.installation_date  # Assuming installation_date is the field name
-        records = mseb_data
+        # Check if installation_date_date exists (the actual date field) to determine if MSEB is completed
+        # MSEB is completed if either the boolean field is True OR the date field is not None
+        # Prioritize checking installation_date_date first, as it's the actual completion indicator
+        installation_date1 = (mseb_data.installation_date_date is not None) or bool(mseb_data.installation_date)
         progress_data = {}
         try:
             current_load = int(customer.current_load) if customer.current_load is not None else 0
@@ -2685,97 +2688,104 @@ def customer_updatepage(request, Cust_id):
                 return None
         
         # Constructing progress data with display names
-        for field, value in mseb_data.__dict__.items():
-            if field in field_mapping:
-                date_value = getattr(mseb_data, f"{field}_date", None) if f"{field}_date" in mseb_data.__dict__ else None
-                progress_data[field_mapping[field]] = {
-                    'value': value,
-                    'date': safe_get_date(date_value)
-                }
-                # Calculate warranty end dates
-                installation_date = mseb_data.installation_date_date
-                if installation_date:
-                    # Helper function to safely convert installation_date_date to date object
-                    def get_installation_date_as_date(date_value):
-                        """Convert installation_date_date to datetime.date, handling both string and datetime objects"""
-                        if date_value is None:
+        # Use getattr to access fields directly instead of __dict__ to handle case-sensitivity
+        for field in field_mapping:
+            value = getattr(mseb_data, field, None)
+            date_value = getattr(mseb_data, f"{field}_date", None)
+            # Ensure boolean values are properly converted (handle case where value might be string 'True'/'False')
+            if isinstance(value, str):
+                value = value.lower() in ('true', '1', 'yes')
+            elif value is None:
+                value = False
+            progress_data[field_mapping[field]] = {
+                'value': bool(value),  # Ensure it's a boolean
+                'date': safe_get_date(date_value)
+            }
+        
+        # Calculate warranty end dates (outside the loop)
+        installation_date = mseb_data.installation_date_date
+        if installation_date:
+            # Helper function to safely convert installation_date_date to date object
+            def get_installation_date_as_date(date_value):
+                """Convert installation_date_date to datetime.date, handling both string and datetime objects"""
+                if date_value is None:
+                    return None
+                if isinstance(date_value, str):
+                    # Parse string to datetime, then convert to date
+                    try:
+                        # Use the datetime module's strptime
+                        dt = datetime.datetime.strptime(date_value, '%Y-%m-%d')
+                        return dt.date()
+                    except (ValueError, AttributeError):
+                        try:
+                            dt = datetime.datetime.strptime(date_value, '%Y-%m-%d %H:%M:%S')
+                            return dt.date()
+                        except (ValueError, AttributeError):
                             return None
-                        if isinstance(date_value, str):
-                            # Parse string to datetime, then convert to date
-                            try:
-                                # Use the datetime module's strptime
-                                dt = datetime.datetime.strptime(date_value, '%Y-%m-%d')
-                                return dt.date()
-                            except (ValueError, AttributeError):
-                                try:
-                                    dt = datetime.datetime.strptime(date_value, '%Y-%m-%d %H:%M:%S')
-                                    return dt.date()
-                                except (ValueError, AttributeError):
-                                    return None
-                        elif isinstance(date_value, datetime.datetime):
-                            # It's a datetime object, convert to date
-                            return date_value.date()
-                        elif isinstance(date_value, date):
-                            # It's already a date object
-                            return date_value
-                        else:
-                            # For any other type, try to convert if it has a date method
-                            # But NEVER call .date() on strings - they have a 'date' attribute but it's not what we want
-                            if isinstance(date_value, str):
-                                return None  # Already handled above, but double-check
-                            try:
-                                # Only try .date() if it's definitely not a string
-                                if hasattr(date_value, 'date') and callable(getattr(date_value, 'date', None)):
-                                    # Double-check it's not a string before calling
-                                    if not isinstance(date_value, str):
-                                        return date_value.date()
-                            except (AttributeError, TypeError):
-                                pass
-                            return None
-                    
-                    installation_date_date = get_installation_date_as_date(mseb_data.installation_date_date)
-                    
-                    if installation_date_date:
-                        inv_warranty_years = customer.inv_warranty
-                        sol_warranty_years = customer.sol_warranty
-                        com_warranty_years = customer.com_warranty
-                        waterpump_warranty_years = customer.pump_warranty
+                elif isinstance(date_value, datetime.datetime):
+                    # It's a datetime object, convert to date
+                    return date_value.date()
+                elif isinstance(date_value, date):
+                    # It's already a date object
+                    return date_value
+                else:
+                    # For any other type, try to convert if it has a date method
+                    # But NEVER call .date() on strings - they have a 'date' attribute but it's not what we want
+                    if isinstance(date_value, str):
+                        return None  # Already handled above, but double-check
+                    try:
+                        # Only try .date() if it's definitely not a string
+                        if hasattr(date_value, 'date') and callable(getattr(date_value, 'date', None)):
+                            # Double-check it's not a string before calling
+                            if not isinstance(date_value, str):
+                                return date_value.date()
+                    except (AttributeError, TypeError):
+                        pass
+                    return None
+            
+            installation_date_date = get_installation_date_as_date(mseb_data.installation_date_date)
+            
+            if installation_date_date:
+                inv_warranty_years = customer.inv_warranty
+                sol_warranty_years = customer.sol_warranty
+                com_warranty_years = customer.com_warranty
+                waterpump_warranty_years = customer.pump_warranty
 
-                        if inv_warranty_years:
-                            inv_warranty_end_date = installation_date_date + datetime.timedelta(days=365 * inv_warranty_years) - timedelta(days=1)
-                            remaining_days_inv_warranty = (inv_warranty_end_date - current_date).days
-                            progress_warranty['Inverter Warranty'] = {
-                                'value': True,
-                                'date': inv_warranty_end_date,
-                                'remaining_days': remaining_days_inv_warranty
-                            }
+                if inv_warranty_years:
+                    inv_warranty_end_date = installation_date_date + datetime.timedelta(days=365 * inv_warranty_years) - timedelta(days=1)
+                    remaining_days_inv_warranty = (inv_warranty_end_date - current_date).days
+                    progress_warranty['Inverter Warranty'] = {
+                        'value': True,
+                        'date': inv_warranty_end_date,
+                        'remaining_days': remaining_days_inv_warranty
+                    }
 
-                        if sol_warranty_years:
-                            sol_warranty_end_date = installation_date_date + datetime.timedelta(days=365 * sol_warranty_years) - timedelta(days=1)
-                            remaining_days_sol_warranty = (sol_warranty_end_date - current_date).days
-                            progress_warranty['Solar Module Warranty'] = {
-                                'value': True,
-                                'date': sol_warranty_end_date,
-                                'remaining_days': remaining_days_sol_warranty
-                            }
+                if sol_warranty_years:
+                    sol_warranty_end_date = installation_date_date + datetime.timedelta(days=365 * sol_warranty_years) - timedelta(days=1)
+                    remaining_days_sol_warranty = (sol_warranty_end_date - current_date).days
+                    progress_warranty['Solar Module Warranty'] = {
+                        'value': True,
+                        'date': sol_warranty_end_date,
+                        'remaining_days': remaining_days_sol_warranty
+                    }
 
-                        if waterpump_warranty_years:
-                            waterpump_warranty_end_date = installation_date_date + datetime.timedelta(days=365 * waterpump_warranty_years) - timedelta(days=1)
-                            remaining_days_waterpump_warranty = (waterpump_warranty_end_date - current_date).days
-                            progress_warranty['Solar Pump Warranty'] = {
-                                'value': True,
-                                'date': waterpump_warranty_end_date,
-                                'remaining_days': remaining_days_waterpump_warranty
-                            }
+                if waterpump_warranty_years:
+                    waterpump_warranty_end_date = installation_date_date + datetime.timedelta(days=365 * waterpump_warranty_years) - timedelta(days=1)
+                    remaining_days_waterpump_warranty = (waterpump_warranty_end_date - current_date).days
+                    progress_warranty['Solar Pump Warranty'] = {
+                        'value': True,
+                        'date': waterpump_warranty_end_date,
+                        'remaining_days': remaining_days_waterpump_warranty
+                    }
 
-                        if com_warranty_years:
-                            com_warranty_end_date = installation_date_date + datetime.timedelta(days=365 * com_warranty_years) - timedelta(days=1)
-                            remaining_days_com_warranty = (com_warranty_end_date - current_date).days + 1
-                            progress_warranty['O & M Warranty'] = {
-                                'value': True,
-                                'date': com_warranty_end_date,
-                                'remaining_days': remaining_days_com_warranty
-                            }
+                if com_warranty_years:
+                    com_warranty_end_date = installation_date_date + datetime.timedelta(days=365 * com_warranty_years) - timedelta(days=1)
+                    remaining_days_com_warranty = (com_warranty_end_date - current_date).days + 1
+                    progress_warranty['O & M Warranty'] = {
+                        'value': True,
+                        'date': com_warranty_end_date,
+                        'remaining_days': remaining_days_com_warranty
+                    }
 
 
 
@@ -2809,7 +2819,7 @@ def customer_updatepage(request, Cust_id):
                    'selected_comp_name': selected_comp_name,
                    'customer': customer, 'progress_data': progress_data, 'records': records,
                    'progress_warranty': progress_warranty,
-                   'mseb_installation_date': installation_date1,
+                   'mseb_installation_date': str(installation_date1).lower(),  # Convert to lowercase string for template JavaScript
                    'remaining_days_inv_warranty': remaining_days_inv_warranty,
 
                    })
@@ -2891,12 +2901,14 @@ def MSEB_tracking_view(request, customer_id):
 
     # Constructing progress data with display names
     progress_data = {}
-    for field, value in mseb_data.__dict__.items():
-        if field in field_mapping:
-            progress_data[field_mapping[field]] = {
-                'value': value,
-                'date': getattr(mseb_data, f"{field}_date") if f"{field}_date" in mseb_data.__dict__ else None
-            }
+    # Use getattr to access fields directly instead of __dict__ to handle case-sensitivity
+    for field in field_mapping:
+        value = getattr(mseb_data, field, None)
+        date_value = getattr(mseb_data, f"{field}_date", None)
+        progress_data[field_mapping[field]] = {
+            'value': value,
+            'date': date_value
+        }
 
     return render(request, 'customer/MSEB_tracking.html', {'customer': customer, 'progress_data': progress_data, 'records': records})
 
