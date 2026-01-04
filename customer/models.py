@@ -301,6 +301,7 @@ class MSEB(models.Model):
 
 
 class SolarPump(models.Model):
+    id = models.AutoField(primary_key=True)
     serial_no = models.CharField(max_length=255, null=True)
     created_at = models.DateTimeField()
     pump_company = models.CharField(max_length=255, null=True)
@@ -317,6 +318,7 @@ class SolarPump(models.Model):
 
 
 class Controller(models.Model):
+    id = models.AutoField(primary_key=True)
     serial_no = models.CharField(max_length=255, null=True)
     created_at = models.DateTimeField()
     pump_company = models.CharField(max_length=255, null=True)

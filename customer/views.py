@@ -3041,14 +3041,16 @@ from django.utils import timezone
 from django.db.models import Count
 from .models import Customer, SolarPump, Result
 from .forms import SolarPumpForm
+from django.contrib.auth.decorators import login_required
 
+@login_required(login_url='user-login')
 def solar_pump_entry(request):
     all_customers = Customer.objects.filter(project_type='Water Pump')
     filtered_customers = []
     exact_match_customers = []
 
     for customer in all_customers:
-        existing_count = SolarPump.objects.filter(consumer_id=customer.Cust_id).count()
+        existing_count = SolarPump.objects.filter(consumer_id=customer).count()
         if customer.pump_qunt > existing_count:
             filtered_customers.append(customer)
         elif customer.pump_qunt == existing_count:
@@ -3077,7 +3079,7 @@ def solar_pump_entry(request):
             if comp_id:
                 try:
                     selected_customer = Customer.objects.get(Cust_id=int(comp_id))
-                    solar_pumps = SolarPump.objects.filter(consumer_id=selected_customer.Cust_id)
+                    solar_pumps = SolarPump.objects.filter(consumer_id=selected_customer)
                     if selected_customer.pump_qunt > solar_pumps.count():
                         allow_new_records = True
                         form = SolarPumpForm()
@@ -3093,9 +3095,29 @@ def solar_pump_entry(request):
             comp_id = request.POST.get('consumer_id')
             if comp_id:
                 try:
-                    selected_customer = Customer.objects.get(Cust_id=int(comp_id))
-                    solar_pumps = SolarPump.objects.filter(consumer_id=selected_customer.Cust_id)
+                    # Convert comp_id to integer, handle ValueError if conversion fails
+                    try:
+                        comp_id_int = int(comp_id)
+                    except ValueError:
+                        return JsonResponse({
+                            "success": False,
+                            "error": f"Invalid company ID format: '{comp_id}'. Please select a valid company."
+                        })
+                    
+                    # Get the customer object
+                    selected_customer = Customer.objects.get(Cust_id=comp_id_int)
+                    
+                    # Fix: consumer_id is a ForeignKey, so use the Customer object, not Cust_id
+                    solar_pumps = SolarPump.objects.filter(consumer_id=selected_customer)
+                    
                     if selected_customer.pump_qunt > solar_pumps.count():
+                        # Check if user is authenticated (additional safety check)
+                        if not request.user.is_authenticated:
+                            return JsonResponse({
+                                "success": False,
+                                "error": "You must be logged in to perform this action."
+                            })
+                        
                         serial_no = request.POST.getlist('serial_no[]')
                         model_numbers = request.POST.getlist('pump_company[]')
                         capacities = request.POST.getlist('pump_hp[]')
@@ -3111,12 +3133,13 @@ def solar_pump_entry(request):
                                         consumer=selected_customer.Comp_name,
                                         item_type='Water Pump',
                                         AssignTo=selected_customer.new_customer,
-                                        AssignBy=request.user,
+                                        AssignBy=request.user,  # Now safe because @login_required ensures authenticated user
                                         created_at=timezone.now()
                                     )
                                 )
                         SolarPump.objects.bulk_create(new_entries)
-                        total_pumps = SolarPump.objects.filter(consumer_id=selected_customer.Cust_id).count()
+                        # Fix: consumer_id is a ForeignKey, so use the Customer object, not Cust_id
+                        total_pumps = SolarPump.objects.filter(consumer_id=selected_customer).count()
                         result_entry, created = Result.objects.get_or_create(
                             consumer_id=selected_customer,
                             defaults={
@@ -3126,7 +3149,8 @@ def solar_pump_entry(request):
                         )
                         result_entry.solar_pump = (total_pumps == selected_customer.pump_qunt)
                         result_entry.save()
-                        updated_solar_pumps = list(SolarPump.objects.filter(consumer_id=selected_customer.Cust_id).values())
+                        # Fix: consumer_id is a ForeignKey, so use the Customer object, not Cust_id
+                        updated_solar_pumps = list(SolarPump.objects.filter(consumer_id=selected_customer).values())
                         return JsonResponse({
                             "success": True,
                             "message": "Solar pump entries saved successfully!",
@@ -3137,11 +3161,25 @@ def solar_pump_entry(request):
                             "success": False,
                             "error": "Cannot add more pumps. Maximum limit reached."
                         })
-                except (ObjectDoesNotExist, ValueError):
+                except Customer.DoesNotExist:
                     return JsonResponse({
                         "success": False,
-                        "error": "Invalid company selected. Please try again."
+                        "error": f"Company with ID {comp_id} not found. Please select a valid company."
                     })
+                except Exception as e:
+                    # Log the actual error for debugging
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error in solar_pump_entry: {str(e)}")
+                    return JsonResponse({
+                        "success": False,
+                        "error": f"An error occurred: {str(e)}"
+                    })
+            else:
+                return JsonResponse({
+                    "success": False,
+                    "error": "No company ID provided. Please select a company."
+                })
 
     return render(request, 'customer/solar_pump_new.html', {
         'customers': customers,
@@ -3194,14 +3232,14 @@ def update_solar_pump(request):
             else:
                 customer = Customer.objects.get(Cust_id=consumer_id)
 
-            # Count current SolarPump records for this customer using the customer_id field
-            current_pump_count = SolarPump.objects.filter(consumer_id=customer.Cust_id).count()
+            # Count current SolarPump records for this customer using the customer object
+            current_pump_count = SolarPump.objects.filter(consumer_id=customer).count()
 
             # Compare the count with pump_qunt from the customer table
             solar_pump_status = (current_pump_count == customer.pump_qunt)
 
-            # Update the corresponding Result record's solar_pump field using customer_id
-            Result.objects.filter(consumer_id=customer.Cust_id).update(solar_pump=solar_pump_status)
+            # Update the corresponding Result record's solar_pump field using customer object
+            Result.objects.filter(consumer_id=customer).update(solar_pump=solar_pump_status)
 
             return JsonResponse({"success": True, "message": "Records updated successfully!"})
         except Exception as e:
@@ -3237,17 +3275,17 @@ def delete_solar_pump_records(request):
         if not customer:
             return JsonResponse({'success': False, 'error': 'Customer not found.'})
 
-        # Count SolarPump entries before deletion
-        pump_count = SolarPump.objects.filter(consumer_id=company_id).count()
+        # Count SolarPump entries before deletion using customer object
+        pump_count = SolarPump.objects.filter(consumer_id=customer).count()
 
-        # Delete the SolarPump records
-        deleted_count, _ = SolarPump.objects.filter(consumer_id=company_id).delete()
+        # Delete the SolarPump records using customer object
+        deleted_count, _ = SolarPump.objects.filter(consumer_id=customer).delete()
 
         # Compare and update Result table if condition matched
         if pump_count == customer.pump_qunt:
-            Result.objects.filter(consumer_id=company_id).update(solar_pump=False)
+            Result.objects.filter(consumer_id=customer).update(solar_pump=False)
         else:
-            Result.objects.filter(consumer_id=company_id).update(solar_pump=False)
+            Result.objects.filter(consumer_id=customer).update(solar_pump=False)
 
         return JsonResponse({
             'success': True,
@@ -3258,6 +3296,7 @@ def delete_solar_pump_records(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
+@login_required(login_url='user-login')
 def controller_entry(request):
     all_customers = Customer.objects.filter(project_type='Water Pump')
 
@@ -3266,7 +3305,7 @@ def controller_entry(request):
     exact_match_customers = []
 
     for customer in all_customers:
-        existing_count = Controller.objects.filter(consumer_id=customer.Cust_id).count()
+        existing_count = Controller.objects.filter(consumer_id=customer).count()
         if customer.qunt_inv > existing_count:
             filtered_customers.append(customer)
         elif customer.qunt_inv == existing_count:
@@ -3297,7 +3336,7 @@ def controller_entry(request):
             if comp_id:
                 try:
                     selected_customer = Customer.objects.get(Cust_id=int(comp_id))
-                    solar_pumps = Controller.objects.filter(consumer_id=selected_customer.Cust_id)
+                    solar_pumps = Controller.objects.filter(consumer_id=selected_customer)
 
                     if selected_customer.qunt_inv > solar_pumps.count():
                         allow_new_records = True
@@ -3312,12 +3351,29 @@ def controller_entry(request):
             else:
                 error = 'No company selected. Please select a company.'
 
-        elif 'serial_no[]' in request.POST:  # Handling new solar pump entries via AJAX
+        elif 'serial_no[]' in request.POST:  # Handling new controller entries via AJAX
             comp_id = request.POST.get('consumer_id')
             if comp_id:
                 try:
-                    selected_customer = Customer.objects.get(Cust_id=int(comp_id))
-                    solar_pumps = Controller.objects.filter(consumer_id=selected_customer.Cust_id)
+                    # Check if user is authenticated (additional safety check)
+                    if not request.user.is_authenticated:
+                        return JsonResponse({
+                            "success": False,
+                            "error": "You must be logged in to perform this action."
+                        })
+                    
+                    # Convert comp_id to integer, handle ValueError if conversion fails
+                    try:
+                        comp_id_int = int(comp_id)
+                    except ValueError:
+                        return JsonResponse({
+                            "success": False,
+                            "error": f"Invalid company ID format: '{comp_id}'. Please select a valid company."
+                        })
+                    
+                    # Get the customer object
+                    selected_customer = Customer.objects.get(Cust_id=comp_id_int)
+                    solar_pumps = Controller.objects.filter(consumer_id=selected_customer)
 
                     if selected_customer.qunt_inv > solar_pumps.count():
                         serial_no = request.POST.getlist('serial_no[]')
@@ -3336,15 +3392,15 @@ def controller_entry(request):
                                         consumer=selected_customer.Comp_name,
                                         item_type='Controller',
                                         AssignTo=selected_customer.new_customer,
-                                        AssignBy=request.user,
+                                        AssignBy=request.user,  # Now safe because @login_required ensures authenticated user
                                         created_at=timezone.now()
                                     )
                                 )
 
                         Controller.objects.bulk_create(new_entries)
 
-                        # Recalculate counts and update result entry
-                        total_controllers = Controller.objects.filter(consumer_id=selected_customer.Cust_id).count()
+                        # Recalculate counts and update result entry using customer object
+                        total_controllers = Controller.objects.filter(consumer_id=selected_customer).count()
 
                         result_entry, created = Result.objects.get_or_create(
                             consumer_id=selected_customer,
@@ -3359,7 +3415,7 @@ def controller_entry(request):
                             result_entry.inverter = 0
                         result_entry.save()
 
-                        updated_solar_pumps = list(Controller.objects.filter(consumer_id=selected_customer.Cust_id).values())
+                        updated_solar_pumps = list(Controller.objects.filter(consumer_id=selected_customer).values())
                         return JsonResponse({
                             "success": True,
                             "message": "Solar Controller entries saved successfully!",
@@ -3371,11 +3427,25 @@ def controller_entry(request):
                             "error": "Cannot add more Controller. Maximum limit reached."
                         })
 
-                except (ObjectDoesNotExist, ValueError):
+                except Customer.DoesNotExist:
                     return JsonResponse({
                         "success": False,
-                        "error": "Invalid company selected. Please try again."
+                        "error": f"Company with ID {comp_id} not found. Please select a valid company."
                     })
+                except Exception as e:
+                    # Log the actual error for debugging
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error in controller_entry: {str(e)}")
+                    return JsonResponse({
+                        "success": False,
+                        "error": f"An error occurred: {str(e)}"
+                    })
+            else:
+                return JsonResponse({
+                    "success": False,
+                    "error": "No company ID provided. Please select a company."
+                })
 
     return render(request, 'customer/controller_new.html', {
         'customers': customers,
@@ -3428,8 +3498,8 @@ def update_controller(request):
             else:
                 customer = Customer.objects.get(Cust_id=consumer_id)
 
-            # Count current Controller records (for qunt_inv comparison)
-            current_controller_count = Controller.objects.filter(consumer_id=customer.Cust_id).count()
+            # Count current Controller records (for qunt_inv comparison) using customer object
+            current_controller_count = Controller.objects.filter(consumer_id=customer).count()
 
             # Determine solar pump status:
             # Set status to 1 only if both conditions are met; otherwise, 0.
@@ -3438,35 +3508,14 @@ def update_controller(request):
             else:
                 solar_pump_status = 0
 
-            # Update the corresponding Result record's solar_pump field using customer_id
-            Result.objects.filter(consumer_id=customer.Cust_id).update(inverter=solar_pump_status)
+            # Update the corresponding Result record's solar_pump field using customer object
+            Result.objects.filter(consumer_id=customer).update(inverter=solar_pump_status)
 
             return JsonResponse({"success": True, "message": "Records updated successfully!"})
         except Exception as e:
             return JsonResponse({"success": False, "message": str(e)})
 
     return JsonResponse({"success": False, "message": "Invalid request method!"})
-
-
-
-@require_POST
-@csrf_exempt  # Remove this if you're handling CSRF tokens properly
-def delete_controller_records(request):
-    try:
-        data = json.loads(request.body)
-        company_id = data.get('company_id')
-        if not company_id:
-            return JsonResponse({'success': False, 'error': 'No company_id provided.'})
-
-        # Delete all SolarPump records for the given company (consumer_id)
-        deleted_count, _ = Controller.objects.filter(consumer_id=company_id).delete()
-
-        return JsonResponse({
-            'success': True,
-            'message': f'Successfully deleted {deleted_count} records for company id {company_id}.'
-        })
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
 
 
 
@@ -3485,17 +3534,17 @@ def delete_controller_records(request):
         if not customer:
             return JsonResponse({'success': False, 'error': 'Customer not found.'})
 
-        # Count SolarPump entries before deletion
-        pump_count = Controller.objects.filter(consumer_id=company_id).count()
+        # Count Controller entries before deletion using customer object
+        pump_count = Controller.objects.filter(consumer_id=customer).count()
 
-        # Delete the SolarPump records
-        deleted_count, _ = Controller.objects.filter(consumer_id=company_id).delete()
+        # Delete the Controller records using customer object
+        deleted_count, _ = Controller.objects.filter(consumer_id=customer).delete()
 
         # Compare and update Result table if condition matched
         if pump_count == customer.qunt_inv:
-            Result.objects.filter(consumer_id=company_id).update(inverter=False)
+            Result.objects.filter(consumer_id=customer).update(inverter=False)
         else:
-            Result.objects.filter(consumer_id=company_id).update(inverter=False)
+            Result.objects.filter(consumer_id=customer).update(inverter=False)
 
         return JsonResponse({
             'success': True,
