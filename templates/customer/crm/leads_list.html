@@ -1,0 +1,87 @@
+{% extends "partials/base.html" %}
+{% block title %}Leads - CRM{% endblock %}
+{% block content %}
+<div class="container-fluid mt-3">
+  <div class="row">
+    <!-- Left: Filters -->
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h5>Filters</h5>
+        <form method="get" hx-get="{% url 'crm:leads_list' %}" hx-target="#leads-list" hx-swap="innerHTML">
+          <div class="form-group">
+            <label>Search</label>
+            <input type="text" name="q" class="form-control" placeholder="Name, phone, location">
+          </div>
+          <div class="form-group">
+            <label>Stage</label>
+            <select name="stage" class="form-control">
+              <option value="">Any</option>
+              {% for s in stages %}
+              <option value="{{ s.id }}">{{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Assigned</label>
+            <select name="assigned" class="form-control">
+              <option value="">Any</option>
+              {% for u in users %}
+              <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Score</label>
+            <select name="score" class="form-control">
+              <option value="">Any</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-block">Apply</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Right: Leads list -->
+    <div class="col-md-9">
+      <div id="leads-list">
+        <div class="card p-3">
+          <h5>Leads</h5>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Name</th><th>Phone</th><th>Location</th><th>Bill</th><th>Score</th><th>Stage</th><th>Assigned</th><th>Next Follow-up</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for lead in leads %}
+              <tr hx-get="{% url 'crm:lead_detail' lead.id %}" hx-target="#main-modal-body" hx-trigger="click">
+                <td>{{ lead.name }}</td>
+                <td>{{ lead.phone }}</td>
+                <td>{{ lead.location }}</td>
+                <td>{{ lead.electricity_bill }}</td>
+                <td>
+                  <span class="badge badge-{{ 'success' if lead.score=='high' else 'warning' if lead.score=='medium' else 'secondary' }}">{{ lead.get_score_display }}</span>
+                </td>
+                <td>{{ lead.stage }}</td>
+                <td>{{ lead.assigned_to.get_full_name|default:lead.assigned_to.username if lead.assigned_to }}</td>
+                <td>{{ lead.next_followup }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8">No leads found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal target for HTMX detail load -->
+<div id="main-modal-body"></div>
+
+{% endblock %}
+

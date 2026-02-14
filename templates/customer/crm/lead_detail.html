@@ -1,0 +1,72 @@
+{% extends "partials/base.html" %}
+{% block title %}Lead: {{ lead.name }}{% endblock %}
+{% block content %}
+<div class="container-fluid mt-3">
+  <div class="row">
+    <!-- LEFT: Customer Info -->
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h5>{{ lead.name }}</h5>
+        <p><strong>Phone:</strong> {{ lead.phone }}</p>
+        <p><strong>Location:</strong> {{ lead.location }}</p>
+        <p><strong>Electricity Bill:</strong> {{ lead.electricity_bill }}</p>
+        <p><strong>Property Type:</strong> {{ lead.property_type }}</p>
+        <p><strong>Score:</strong> {{ lead.get_score_display }}</p>
+        <p><strong>Source:</strong> {{ lead.source }}</p>
+        <p><strong>Campaign:</strong> {{ lead.campaign }}</p>
+        <hr/>
+        <a href="#" class="btn btn-sm btn-outline-primary">Edit</a>
+        <a href="#" class="btn btn-sm btn-outline-danger">Mark Lost</a>
+        <a href="#" class="btn btn-sm btn-success">Convert to Opportunity</a>
+      </div>
+    </div>
+
+    <!-- CENTER: Timeline -->
+    <div class="col-md-6">
+      <div class="card p-3">
+        <h5>Activity Feed</h5>
+        <div>
+          {% for act in activities %}
+          <div class="media mb-2">
+            <div class="media-body">
+              <h6 class="mt-0">{{ act.get_type_display }} <small class="text-muted"> - {{ act.created_at }}</small></h6>
+              <div>{{ act.note }}</div>
+            </div>
+          </div>
+          {% empty %}
+          <p class="text-muted">No activity yet.</p>
+          {% endfor %}
+        </div>
+        <hr/>
+        <div class="d-flex">
+          <a href="#" class="btn btn-primary mr-2">Log Call</a>
+          <a href="#" class="btn btn-secondary mr-2">Add Note</a>
+          <a href="#" class="btn btn-outline-info">Schedule Follow-up</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Pipeline Panel -->
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h5>Pipeline</h5>
+        <p><strong>Stage:</strong></p>
+        <form hx-post="{% url 'crm:update_lead_stage' lead.id %}" hx-trigger="change" hx-target="#pipeline-response" hx-swap="innerHTML">
+          <select name="stage_id" class="form-control">
+            {% for s in stages %}
+            <option value="{{ s.id }}" {% if lead.stage and lead.stage.id == s.id %}selected{% endif %}>{{ s.name }}</option>
+            {% endfor %}
+          </select>
+        </form>
+        <div id="pipeline-response" class="mt-2"></div>
+        <hr/>
+        <p><strong>Opportunity Value:</strong> {{ lead.bill_amount }}</p>
+        <p><strong>Expected Close:</strong> {{ lead.next_followup }}</p>
+        <p><strong>Quotation Status:</strong> -</p>
+        <p><strong>Site Survey Status:</strong> -</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
