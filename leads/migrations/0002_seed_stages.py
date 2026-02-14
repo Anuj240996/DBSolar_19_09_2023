@@ -1,6 +1,17 @@
-from django.db import migrations
+from django.db import migrations, connections, DEFAULT_DB_ALIAS
+
 
 def create_default_stages(apps, schema_editor):
+    # Ensure the leads_stage table exists before using ORM queries.
+    conn = connections[DEFAULT_DB_ALIAS]
+    try:
+        table_names = conn.introspection.table_names()
+    except Exception:
+        table_names = []
+    if 'leads_stage' not in table_names:
+        # Table not present yet — skip seeding. It will be safe to run later.
+        return
+
     Stage = apps.get_model('leads', 'Stage')
     default = [
         ('New Leads', 0, False, False),
