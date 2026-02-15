@@ -88,7 +88,13 @@ class Customer(models.Model):
     #new_customer = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     new_customer = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='new_customer_customers', db_column='new_customer_id')
     Engg_Assign = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='engg_assign_customers', db_column='engg_assign_id')
-    Cust_id = models.IntegerField(primary_key=True, null=False, default=uuid.uuid4(), db_column='cust_id')
+    # Cust_id = models.IntegerField(primary_key=True, null=False, default=uuid.uuid4(), db_column='cust_id')
+
+    Cust_id = models.BigAutoField(
+        primary_key=True,
+        db_column='cust_id'
+    )
+
     Comp_name = models.CharField(max_length=200, null=True, db_column='comp_name')
     Consumer = models.CharField(max_length=100, null=True, db_column='consumer')
     current_load = models.IntegerField(default=0, null=True)
@@ -231,6 +237,7 @@ class Meter(models.Model):
 #     serial_number = models.CharField(max_length=255)
 
 class Meters(models.Model):
+    id = models.AutoField(primary_key=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='meters')
     comp_name = models.CharField(max_length=100)
     make = models.CharField(max_length=100)
@@ -245,6 +252,7 @@ class Meters(models.Model):
 
 
 class GenerationMeter(models.Model):
+    id = models.AutoField(primary_key=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='generation_meters')
     comp_name = models.CharField(max_length=100)
     make = models.CharField(max_length=100)
@@ -337,51 +345,52 @@ class Controller(models.Model):
 
 
 class InspectionDetail(models.Model):
-    company_name = models.CharField(max_length=255)
-    created_at = models.DateTimeField(null=True)
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='data', null=True)
+    id = models.AutoField(primary_key=True)
+    company_name = models.CharField(max_length=255, db_column='company_name')
+    created_at = models.DateTimeField(null=True, db_column='created_at')
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='data', null=True, db_column='customer_id')
     AssignBy = models.ForeignKey(User, related_name='data_assigned_by', on_delete=models.SET_NULL,null=True, db_column='assignby_id')
-    solar_Module_Completed = models.BooleanField(default=False)
-    solar_Module_Reason = models.CharField(max_length=255, blank=True, null=True)
-    solar_Module_Reason_other = models.CharField(max_length=255, blank=True, null=True)
-    inverter_Completed = models.BooleanField(default=False)
-    inverter_Reason = models.CharField(max_length=255, blank=True, null=True)
-    inverter_Reason_other = models.CharField(max_length=255, blank=True, null=True)
-    net_Meter_Completed = models.BooleanField(default=False)
-    net_Meter_Reason = models.CharField(max_length=255, blank=True, null=True)
-    net_Meter_Reason_other = models.CharField(max_length=255, blank=True, null=True)
-    ct_Completed = models.BooleanField(default=False)
-    ct_Reason = models.CharField(max_length=255, blank=True, null=True)
-    ct_Checkmark_other = models.CharField(max_length=255, blank=True, null=True)
-    generation_Meters_Completed = models.BooleanField(default=False)
-    generation_Meters_Reason = models.CharField(max_length=255, blank=True, null=True)
-    generation_Meters_Reason_other = models.CharField(max_length=255, blank=True, null=True)
-    gen_CT_Meters_Completed = models.BooleanField(default=False)
-    gen_CT_Meters_Reason = models.CharField(max_length=255, blank=True, null=True)
-    gen_CT_Meters_Reason_other = models.CharField(max_length=255, blank=True, null=True)
-    ac_Panel_Cabling_Completed = models.BooleanField(default=False)
-    ac_Panel_Cabling_Reason = models.CharField(max_length=255, blank=True, null=True)
-    ac_Panel_Cabling_Reason_other = models.CharField(max_length=255, blank=True, null=True)
-    dc_Panel_Cabling_Completed = models.BooleanField(default=False)
-    dc_Panel_Cabling_Reason = models.CharField(max_length=255, blank=True, null=True)
-    dc_Panel_Cabling_Reason_other = models.CharField(max_length=255, blank=True, null=True)
-    fabrication_Completed = models.BooleanField(default=False)
-    fabrication_Reason = models.CharField(max_length=255, blank=True, null=True)
-    fabrication_Reason_other = models.CharField(max_length=255, blank=True, null=True)
-    walkway_Completed = models.BooleanField(default=False)
-    walkway_Reason = models.CharField(max_length=255, blank=True, null=True)
-    walkway_Reason_other = models.CharField(max_length=255, blank=True, null=True)
-    pipeline_Completed = models.BooleanField(default=False)
-    pipeline_Reason = models.CharField(max_length=255, blank=True, null=True)
-    pipeline_Reason_other = models.CharField(max_length=255, blank=True, null=True)
-    ropeway_Completed = models.BooleanField(default=False)
-    ropeway_Reason = models.CharField(max_length=255, blank=True, null=True)
-    ropeway_Reason_other = models.CharField(max_length=255, blank=True, null=True)
-    rolling_Completed = models.BooleanField(default=False)
-    rolling_Reason = models.CharField(max_length=255, blank=True, null=True)
-    rolling_Reason_other = models.CharField(max_length=255, blank=True, null=True)
-    overall_Details = models.TextField(blank=True, null=True)
-    info_Correct = models.BooleanField(default=False)
+    solar_Module_Completed = models.BooleanField(default=False, db_column='solar_module_completed')
+    solar_Module_Reason = models.CharField(max_length=255, blank=True, null=True, db_column='solar_module_reason')
+    solar_Module_Reason_other = models.CharField(max_length=255, blank=True, null=True, db_column='solar_module_reason_other')
+    inverter_Completed = models.BooleanField(default=False, db_column='inverter_completed')
+    inverter_Reason = models.CharField(max_length=255, blank=True, null=True, db_column='inverter_reason')
+    inverter_Reason_other = models.CharField(max_length=255, blank=True, null=True, db_column='inverter_reason_other')
+    net_Meter_Completed = models.BooleanField(default=False, db_column='net_meter_completed')
+    net_Meter_Reason = models.CharField(max_length=255, blank=True, null=True, db_column='net_meter_reason')
+    net_Meter_Reason_other = models.CharField(max_length=255, blank=True, null=True, db_column='net_meter_reason_other')
+    ct_Completed = models.BooleanField(default=False, db_column='ct_completed')
+    ct_Reason = models.CharField(max_length=255, blank=True, null=True, db_column='ct_reason')
+    ct_Checkmark_other = models.CharField(max_length=255, blank=True, null=True, db_column='ct_checkmark_other')
+    generation_Meters_Completed = models.BooleanField(default=False, db_column='generation_meters_completed')
+    generation_Meters_Reason = models.CharField(max_length=255, blank=True, null=True, db_column='generation_meters_reason')
+    generation_Meters_Reason_other = models.CharField(max_length=255, blank=True, null=True, db_column='generation_meters_reason_other')
+    gen_CT_Meters_Completed = models.BooleanField(default=False, db_column='gen_ct_meters_completed')
+    gen_CT_Meters_Reason = models.CharField(max_length=255, blank=True, null=True, db_column='gen_ct_meters_reason')
+    gen_CT_Meters_Reason_other = models.CharField(max_length=255, blank=True, null=True, db_column='gen_ct_meters_reason_other')
+    ac_Panel_Cabling_Completed = models.BooleanField(default=False, db_column='ac_panel_cabling_completed')
+    ac_Panel_Cabling_Reason = models.CharField(max_length=255, blank=True, null=True, db_column='ac_panel_cabling_reason')
+    ac_Panel_Cabling_Reason_other = models.CharField(max_length=255, blank=True, null=True, db_column='ac_panel_cabling_reason_other')
+    dc_Panel_Cabling_Completed = models.BooleanField(default=False, db_column='dc_panel_cabling_completed')
+    dc_Panel_Cabling_Reason = models.CharField(max_length=255, blank=True, null=True, db_column='dc_panel_cabling_reason')
+    dc_Panel_Cabling_Reason_other = models.CharField(max_length=255, blank=True, null=True, db_column='dc_panel_cabling_reason_other')
+    fabrication_Completed = models.BooleanField(default=False, db_column='fabrication_completed')
+    fabrication_Reason = models.CharField(max_length=255, blank=True, null=True, db_column='fabrication_reason')
+    fabrication_Reason_other = models.CharField(max_length=255, blank=True, null=True, db_column='fabrication_reason_other')
+    walkway_Completed = models.BooleanField(default=False, db_column='walkway_completed')
+    walkway_Reason = models.CharField(max_length=255, blank=True, null=True, db_column='walkway_reason')
+    walkway_Reason_other = models.CharField(max_length=255, blank=True, null=True, db_column='walkway_reason_other')
+    pipeline_Completed = models.BooleanField(default=False, db_column='pipeline_completed')
+    pipeline_Reason = models.CharField(max_length=255, blank=True, null=True, db_column='pipeline_reason')
+    pipeline_Reason_other = models.CharField(max_length=255, blank=True, null=True, db_column='pipeline_reason_other')
+    ropeway_Completed = models.BooleanField(default=False, db_column='ropeway_completed')
+    ropeway_Reason = models.CharField(max_length=255, blank=True, null=True, db_column='ropeway_reason')
+    ropeway_Reason_other = models.CharField(max_length=255, blank=True, null=True, db_column='ropeway_reason_other')
+    rolling_Completed = models.BooleanField(default=False, db_column='rolling_completed')
+    rolling_Reason = models.CharField(max_length=255, blank=True, null=True, db_column='rolling_reason')
+    rolling_Reason_other = models.CharField(max_length=255, blank=True, null=True, db_column='rolling_reason_other')
+    overall_Details = models.TextField(blank=True, null=True, db_column='overall_details')
+    info_Correct = models.BooleanField(default=False, db_column='info_correct')
 
 
     def __str__(self):
@@ -403,5 +412,5 @@ class Result(models.Model):
 
     def __str__(self):
         return self.consumer
-
+# CRM integration removed — leads moved to a separate app.
 

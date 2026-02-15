@@ -1,0 +1,14 @@
+<div class="card mb-2 p-2">
+  <div><strong>{{ lead.name }}</strong></div>
+  <div class="small text-muted">City: {{ lead.city }}</div>
+  <div class="mt-1">
+    <form hx-post="{% url 'leads:update_lead_stage' lead.id %}" hx-trigger="change" hx-target="closest .card" hx-swap="outerHTML">
+      <select name="stage" class="form-control form-control-sm">
+        {% for s in stages %}
+          <option value="{{ s.id }}" {% if (lead.stage and lead.stage.id == s.id) or (lead.status == s.name) %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+</div>
+

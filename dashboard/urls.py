@@ -2,6 +2,7 @@ from django.urls import path
 
 from firereport.views import dashboard_staff
 from . import views
+from .views import toggle_status
 
 urlpatterns = [
     path('index/', views.index, name='dashboard-index'),
@@ -12,10 +13,8 @@ urlpatterns = [
     path('stockist/', views.stockist, name='dashboard-stockist'),
     path('finance/', views.finance, name='dashboard-finance'),
     path('engineers/', views.engineers, name='dashboard-engineers'),
-    #path('products/delete/<int:pk>/', views.product_delete,name='dashboard-products-delete'),
-    #path('products/detail/<int:pk>/', views.product_detail,name='dashboard-products-detail'),
-    #path('products/edit/<int:pk>/', views.product_edit,name='dashboard-products-edit'),
-    #path('customer_index', views.customers, name='dashboard-customer_index'),
+    path('delete-user/<int:user_id>/', views.delete_user, name='delete-user'),
+    path('toggle-status/<int:user_id>/<str:action>/', views.toggle_status, name='toggle_status'),
     path('customers/detail/<int:pk>/', views.customer_detail,name='dashboard-customer-detail'),
     path('sendstaff_Notification', views.staff_Send_Notification,name='dashboard-staff_Send_Notification'),
     path('sendconsumer_Notification', views.consumer_Send_Notification,name='dashboard-consumer_Send_Notification'),

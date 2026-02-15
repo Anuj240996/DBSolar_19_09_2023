@@ -1,0 +1,92 @@
+{% extends "partials/base.html" %}
+{% block title %}Pipeline{% endblock %}
+{% block content %}
+<div class="container-fluid mt-3">
+  <h4>Pipeline (Kanban)</h4>
+  <div class="row">
+    {% for stage, leads in stage_groups %}
+    <div class="col-md-2">
+      <div class="card p-2">
+        <h6>{{ stage.name }}</h6>
+        <div class="stage-column" data-stage-id="{{ stage.id }}">
+          {% for lead in leads %}
+          <div class="card mb-2 p-2 lead-card" draggable="true" data-lead-id="{{ lead.id }}">
+            <div><strong>{{ lead.name }}</strong></div>
+            <div class="small text-muted">City: {{ lead.city }}</div>
+            <div class="mt-1">
+              {% include 'leads/_lead_card.html' %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <script>
+  (function(){
+    function csrf() {
+      const m = document.cookie.match('(^|;)\\s*' + 'csrftoken' + '\\s*=\\s*([^;]+)');
+      return m ? m.pop() : '';
+    }
+    let dragged = null;
+    document.querySelectorAll('.lead-card').forEach(function(card){
+      card.addEventListener('dragstart', function(e){
+        dragged = card;
+        e.dataTransfer.setData('text/plain', card.dataset.leadId);
+        card.classList.add('dragging');
+      });
+      card.addEventListener('dragend', function(){
+        card.classList.remove('dragging');
+        dragged = null;
+      });
+    });
+    document.querySelectorAll('.stage-column').forEach(function(col){
+      col.addEventListener('dragover', function(e){
+        e.preventDefault();
+        col.classList.add('drag-over');
+      });
+      col.addEventListener('dragleave', function(){
+        col.classList.remove('drag-over');
+      });
+      col.addEventListener('drop', function(e){
+        e.preventDefault();
+        col.classList.remove('drag-over');
+        const leadId = e.dataTransfer.getData('text/plain') || (dragged && dragged.dataset.leadId);
+        const stageId = col.dataset.stageId;
+        if (!leadId || !stageId) return;
+        // send POST to update stage
+        fetch("{% url 'leads:update_lead_stage' 0 %}".replace('/0/', '/' + leadId + '/'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrf(),
+            'HX-Request': 'true'
+          },
+          body: new URLSearchParams({stage: stageId})
+        }).then(r=>r.text()).then(html=>{
+          // replace dragged card with updated HTML (if fragment returned)
+          try {
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            const newCard = temp.firstElementChild;
+            // find existing card element in DOM
+            const existing = document.querySelector('.lead-card[data-lead-id=\"'+leadId+'\"]');
+            if (existing && newCard) {
+              existing.replaceWith(newCard);
+            } else if (newCard) {
+              col.appendChild(newCard);
+            }
+          } catch(err){
+            console.error('Failed to apply stage update response', err);
+          }
+        }).catch(err=>{
+          console.error('Stage update failed', err);
+        });
+      });
+    });
+  })();
+  </script>
+</div>
+{% endblock %}
+

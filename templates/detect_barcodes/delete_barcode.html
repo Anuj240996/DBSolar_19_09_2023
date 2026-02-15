@@ -1,25 +1,169 @@
 {% extends 'partials/base.html' %}
 {% block title %}Order Page{% endblock %}
+{% load static %}
 {% block content %}
-<!-- Add other meta tags and stylesheets -->
-<div class="container-fluid">
-   <div class="card-body">
+<!-- Include DataTables stylesheets -->
+    <link rel="stylesheet" type="text/css" href="path/to/datatables.min.css">
+<!-- Include DataTables stylesheets -->
+    <link rel="stylesheet" type="text/css" href="path/to/datatables.min.css">
+<link rel="stylesheet" href="{% static 'assets/plugins/datatables/datatables.min.css' %}">
+ <script src="{% static 'assets/js/jquery.min.js' %}"></script>
+<script type="text/javascript" charset="utf8" src="{% static 'assets/plugins/datatables/datatables.min.js' %}"></script>
+
+
+<style>
+.selected-row {
+    //background-color: red; /* Adjust the background color as needed */
+    background-color: #cb6843; /* Adjust the background color as needed */
+    color: white; /* Adjust text color as needed */
+}
+</style>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Function to toggle the selected-row class on the row element
+        function toggleSelectedRow(row, isChecked) {
+            if (isChecked) {
+                row.classList.add('selected-row'); // Add the class
+            } else {
+                row.classList.remove('selected-row'); // Remove the class
+            }
+        }
+
+        // Function to handle checkbox change
+        function handleCheckboxChange(checkbox, tableClass) {
+            const row = checkbox.closest('tr');
+            const isChecked = checkbox.checked;
+
+            toggleSelectedRow(row, isChecked);
+        }
+
+        // Function to handle "Select All" checkbox change
+        function handleSelectAllChange(selectAllCheckbox, tableClass) {
+            const checkboxes = document.querySelectorAll(`.${tableClass} .checkbox-input`);
+            checkboxes.forEach((checkbox) => {
+                checkbox.checked = selectAllCheckbox.checked;
+                const row = checkbox.closest('tr');
+                toggleSelectedRow(row, selectAllCheckbox.checked);
+            });
+        }
+
+        // ... (rest of your existing JavaScript code)
+
+        // Add event listeners to all checkboxes for the solar table
+        const solarCheckboxes = document.querySelectorAll('.solar-table .checkbox-input');
+        solarCheckboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', () => {
+                handleCheckboxChange(checkbox, 'solar-table');
+            });
+        });
+
+        // Add event listener to "Select All" checkbox for the solar table
+        const selectAllSolarCheckbox = document.querySelector('.solar-table .select-all-checkbox');
+        if (selectAllSolarCheckbox) {
+            selectAllSolarCheckbox.addEventListener('change', () => {
+                handleSelectAllChange(selectAllSolarCheckbox, 'solar-table');
+            });
+        }
+
+        // Add event listeners to all checkboxes for the Inverter table
+        const inverterCheckboxes = document.querySelectorAll('.inverter-table .checkbox-input');
+        inverterCheckboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', () => {
+                handleCheckboxChange(checkbox, 'inverter-table');
+            });
+        });
+
+        // Add event listener to "Select All" checkbox for the inverter table
+        const selectAllInverterCheckbox = document.querySelector('.inverter-table .select-all-checkbox');
+        if (selectAllInverterCheckbox) {
+            selectAllInverterCheckbox.addEventListener('change', () => {
+                handleSelectAllChange(selectAllInverterCheckbox, 'inverter-table');
+            });
+        }
+        // Add event listeners to all checkboxes for the Replace table
+        const replaceCheckboxes = document.querySelectorAll('.replace-table .checkbox-input');
+        replaceCheckboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', () => {
+                handleCheckboxChange(checkbox, 'replace-table');
+            });
+        });
+
+        // Add event listener to "Select All" checkbox for the replace table
+        const selectAllReplaceCheckbox = document.querySelector('.replace-table .select-all-checkbox');
+        if (selectAllReplaceCheckbox) {
+            selectAllReplaceCheckbox.addEventListener('change', () => {
+                handleSelectAllChange(selectAllReplaceCheckbox, 'replace-table');
+            });
+        }
+
+
+        // Function to toggle the display of the data-form based on items
+    function toggleDataFormDisplay() {
+        const dataForm = document.getElementById('data-form');
+        const solarItems = document.querySelectorAll('.solar-table .checkbox-input');
+        const inverterItems = document.querySelectorAll('.inverter-table .checkbox-input');
+        const replaceItems = document.querySelectorAll('.replace-table .checkbox-input');
+
+        if (solarItems.length > 0 || inverterItems.length > 0 || replaceItems.length > 0) {
+            dataForm.style.display = 'block';
+        } else {
+            dataForm.style.display = 'none';
+        }
+    }
+
+    // Call the function initially to set the initial display state
+    toggleDataFormDisplay();
+
+    // Add event listeners to all checkboxes to toggle form display
+    checkboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', toggleDataFormDisplay);
+    });
+
+
+    });
+</script>
+ <style>
+    /* Default styles for the textbox */
+    #globalSearch {
+      border: 1.5px solid gray;
+      background-color: lightgray;
+      padding: 5px; /* Adjust as needed */
+    }
+
+    /* Styles for the textbox when hovered */
+    #globalSearch:hover {
+      background-color: white;
+      border: 2px solid orange;
+    }
+  </style>
+
       <!-- left column -->
       <div class="col-md-12">
          <!-- general form elements -->
          <div class="card card-primary">
             <div class="card-header">
-               <h3>Consumer Product List</h3>
+               <h3>Consumer List</h3>
             </div>
+
             <form method="POST" action="{% url 'detect_barcodes-delete_barcode' %}" id="barcode-form">
                {% csrf_token %}
+
+                {% if messages %}
+      <div class="messages">
+         {% for message in messages %}
+         <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+         </div>
+         {% endfor %}
+      </div>
+      {% endif %}
                <div class="form-group row">
                   <div class="col-sm-5">
                      <label for="company">Company Name:</label>
                      <select class="form-control" name="company" id="company">
                         <option value=""></option>
                         {% for company in companies %}
-                        <option value="{{ company }}">{{ company }}</option>
+                        <option value="{{ company }}" class="text-capitalize">{{ company }}</option>
                         {% endfor %}
                      </select>
                   </div>
@@ -29,7 +173,7 @@
                         <option value=""></option>
                         <option value="All">All</option>
                         {% for product in product_names %}
-                        <option value="{{ product }}">{{ product }}</option>
+                        <option value="{{ product }}" class="text-capitalize">{{ product }}</option>
                         {% endfor %}
                      </select>
                   </div>
@@ -44,43 +188,58 @@
       <br>
 
       {% if solar_items %}
-         <h4>Generated Barcodes for Consumer: {{ solar_items.0.company }}</h4>
+         <h4>Generated Barcodes for Consumer: {{ solar_items.0.company | upper }}</h4>
       {% elif inverter_items %}
-         <h4>Generated Barcodes for Consumer: {{ inverter_items.0.company }}</h4>
+         <h4>Generated Barcodes for Consumer: {{ inverter_items.0.company | upper }}</h4>
       {% endif %}
-      <form method="POST" action="{% url 'detect_barcodes-edit_barcode' %}">
+      <form method="POST" action="{% url 'detect_barcodes-selected_records' %}" id="data-form">
       {% csrf_token %}
+          <div class="row">
+        <div class="col-md-2">
+            <label for="globalSearch"><h6>Global Search: </h6></label>
+        </div>
+        <div class="col-md-10">
+
+        <!-- Your textbox -->
+        <input type="text" id="globalSearch" class="form-control" placeholder="Type to search...">
+                </div>
+    </div>
+          <br>
+<!--          <legend>Solar Panel Items</legend>-->
       {% if solar_items %}
+           <fieldset>
       <div class="col-md-12 mx-auto">
-         <div class="table-responsive">
+           <div class="table-responsive">
                <caption>
-                  <h3>Solar Panel Items</h3>
+                  <h3 style="background-color: lightgray;">Solar Panel Items</h3>
                </caption>
-               <table class="table solar-table">
+
+               <table id="yourDataTable" class="table solar-table customDataTable">
+<!--               <table id="yourDataTable" class="table solar-table">-->
                   <thead>
                       <tr>
-                     <th colspan="5">
+                     <th colspan="5" class="text-capitalize">
                         <b>Make : </b>{{ solar_items.0.company_name }} <br>
-                        <b>Wattage :</b> {{ unique_wattages|join:"," }}
+                        <b>Wattage :</b> {{ unique_wattages|join:"," }} Kw
                      </th>
                      <th colspan="2">
-                        <b>Total Quantity : </b>{{ solar_panel_total_quantity }}
+                        <b>Total Quantity : </b>{{ solar_panel_total_quantity }} Nos.
                         <br>
                         {% for item in solar_panel_quantity_by_wattage %}
-                        <b>Quantity for Model Type {{ item.wattage }} :</b> {{ item.total_quantity }}
+                        <b>Quantity for Model Type {{ item.wattage }} Kw :</b> {{ item.total_quantity }} Nos.
                         <br>
                         {% endfor %}
                      </th>
                   </tr>
 
-                      <tr align="center">
+                      <tr align="center" style="background-color: lightgray;">
                           <th><input type="checkbox" class="select-all-checkbox"> Select All</th>
                           <th>Serial No</th>
                           <th>Make</th>
                           <th>Wattage</th>
                           <th>Barcode No</th>
                           <th>Panel Barcode</th>
-                          <th>Item Type</th>
+<!--                          <th>Item Type</th>-->
                       </tr>
                   </thead>
 
@@ -93,60 +252,68 @@
 <!--                           <td><input type="checkbox" class="checkbox-input" name="selected_items" value="{{ item.barcode_data }}" data-id="{{ item.id }}"></td>-->
                           <td><input type="checkbox" class="checkbox-input" name="selected_items" value="{{ item.pk }}"></td>
                           <td align="center">{{ forloop.counter }}</td>
-                          <td class="label-field"><span>{{ item.company_name }}</span><input type="text" name="company_name_{{ item.pk }}" class="editable-text" value="{{ item.company_name }}" style="display: none;"></td>
-                          <td class="label-field"><span>{{ item.wattage }}</span><input type="text" name="wattage_{{ item.pk }}" class="editable-text" value="{{ item.wattage }}" style="display: none;"></td>
+                          <td class="label-field" class="text-capitalize"><span class="text-capitalize">{{ item.company_name }}</span><input type="text" name="company_name_{{ item.pk }}"  value="{{ item.company_name }}" style="display: none;"></td>
+                          <td class="label-field"><span>{{ item.wattage }} Kw</span><input type="text" name="wattage_{{ item.pk }}"  value="{{ item.wattage }} Kw" style="display: none;"></td>
                           <td>{{ item.barcode_data }}</td>
                           <td>
-                              {% if item.barcode_type == 'CODE39' %}
-                              <img src="{{ item.image.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
-                              {% else %}
-                              <img src="{{ item.barcode_path.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
-                              {% endif %}
-                          </td>
-                          <td>
-                            <button type="button" class="btn btn-danger btn-delete" name="product1_{{ item.pk }}" data-item-id="{{ item.id }}" disabled>Delete</button>
-                          </td>
+                              {% if item.barcode_path %}
+                                    {% if item.barcode_type == 'CODE39' %}
+                                        <img src="{{ item.image.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
+                                    {% else %}
+                                        <img src="{{ item.barcode_path.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
+                                    {% endif %}
+                                {% elif item.image %}
+                                    <img src="{{ item.image.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
+                                {% else %}
+                                    <span>Barcode Not Available</span>
+                                {% endif %}
+
+                            </td>
+
                       </tr>
                       {% endfor %}
                   </tbody>
                </table>
             </div>
-         </div>
+      </div>
+        </fieldset>
       {% endif %}
 
-      <br>
+
 
       {% if inverter_items %}
+      <fieldset>
       <div class="col-md-12 mx-auto">
          <div class="table-responsive">
             <caption>
-               <h3>Inverter Items</h3>
+               <h3 style="background-color: lightgray;">Inverter Items</h3>
             </caption>
-            <table class="table inverter-table">
+            <table id="inverterDataTable" class="table inverter-table customDataTable">
+<!--            <table id="inverterDataTable" class="table inverter-table">-->
                <thead>
                   <tr>
-                     <th colspan="5">
+                     <th colspan="5" class="text-capitalize">
                         <b>Make : </b>{{ inverter_items.0.company_name }} <br>
-                        <b>Wattage :</b> {{ inverter_wattages|join:"," }}
+                        <b>Wattage :</b> {{ inverter_wattages|join:"," }} Kw
                      </th>
                      <th colspan="2">
-                        <b>Total Quantity : </b>{{ inverter_panel_total_quantity }}
+                        <b>Total Quantity : </b>{{ inverter_panel_total_quantity }} Nos.
                         <br>
                         {% for item in inverter_panel_quantity_by_wattage %}
-                        <b>Quantity for Model Type {{ item.wattage }} :</b> {{ item.total_quantity }}
+                        <b>Quantity for Model Type {{ item.wattage }} Kw :</b> {{ item.total_quantity }} Nos.
                         <br>
                         {% endfor %}
                      </th>
                   </tr>
 
-                  <tr align="center">
+                  <tr align="center" style="background-color: lightgray;">
                      <th><input type="checkbox" class="select-all-checkbox" id="select-all-checkbox"> Select All</th>
                      <th>Serial No</th>
                      <th>Make</th>
                      <th>Capacity (KW)</th>
                      <th>Inverter No</th>
                      <th>Inverter Barcode</th>
-                     <th>Item Type</th>
+<!--                     <th>Item Type</th>-->
                   </tr>
                </thead>
                <tbody>
@@ -155,62 +322,68 @@
 <!--                     <td><input type="checkbox" class="checkbox-input" name="selected_items" value="{{ item.barcode_data }}"></td>-->
                       <td><input type="checkbox" class="checkbox-input" name="selected_items" value="{{ item.pk }}"></td>
                      <td>{{ forloop.counter }}</td>
-                     <td class="label-field"><span>{{ item.company_name }}</span><input type="text" name="company_name_{{ item.pk }}" class="editable-text" value="{{ item.company_name }}" style="display: none;"></td>
-                     <td class="label-field"><span>{{ item.wattage }}</span><input type="text" name="wattage_{{ item.pk }}" class="editable-text" value="{{ item.wattage }}" style="display: none;"></td>
+                     <td class="label-field" class="text-capitalize"><span class="text-capitalize">{{ item.company_name }}</span><input type="text" name="company_name_{{ item.pk }}"  value="{{ item.company_name }}" style="display: none;"></td>
+                     <td class="label-field"><span>{{ item.wattage }} Kw</span><input type="text" name="wattage_{{ item.pk }}" value="{{ item.wattage }} Kw" style="display: none;"></td>
                      <td>{{ item.barcode_data }}</td>
-                     <td>
-                        {% if item.barcode_type == 'CODE39' %}
-                        <img src="{{ item.image.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
-                        {% else %}
-                        <img src="{{ item.barcode_path.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
-                        {% endif %}
-                     </td>
-                     <td>
-                        <select class="form-control dropdown-list" name="product1_{{ item.pk }}" align="center" disabled>
-                            <option value=""></option>
-                            <option value="SolarPanel">SolarPanel</option>
-                            <option value="Replace">Replace</option>
-                        </select>
-                     </td>
+                          <td>
+                              {% if item.barcode_path %}
+                                    {% if item.barcode_type == 'CODE39' %}
+                                        <img src="{{ item.image.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
+                                    {% else %}
+                                        <img src="{{ item.barcode_path.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
+                                    {% endif %}
+                                {% elif item.image %}
+                                    <img src="{{ item.image.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
+                                {% else %}
+                                    <span>Barcode Not Available</span>
+                                {% endif %}
+
+                            </td>
+
                   </tr>
                   {% endfor %}
                </tbody>
             </table>
          </div>
       </div>
+      </fieldset>
       {% endif %}
 
+
+
       {% if replace_items %}
+      <fieldset>
       <div class="col-md-12 mx-auto">
          <div class="table-responsive">
             <caption>
-               <h3>Replace Items</h3>
+               <h3 style="background-color: lightgray;">Replace Items</h3>
             </caption>
-            <table class="table replace-table">
+            <table id="replaceDataTable" class="table replace-table customDataTable">
+<!--            <table id="replaceDataTable" class="table replace-table">-->
                <thead>
                   <tr>
-                     <th colspan="5">
+                     <th colspan="5" class="text-capitalize">
                         <b>Make : </b>{{ replace_items.0.company_name }} <br>
-                        <b>Wattage :</b> {{ replace_wattages|join:"," }}
+                        <b>Wattage :</b> {{ replace_wattages|join:"," }} Kw
                      </th>
                      <th colspan="2">
-                        <b>Total Quantity : </b>{{ replace_panel_total_quantity }}
+                        <b>Total Quantity : </b>{{ replace_panel_total_quantity }} Nos.
                         <br>
                         {% for item in replace_panel_quantity_by_wattage %}
-                        <b>Quantity for Model Type {{ item.wattage }} :</b> {{ item.total_quantity }}
+                        <b>Quantity for Model Type {{ item.wattage }} Kw :</b> {{ item.total_quantity }} Nos.
                         <br>
                         {% endfor %}
                      </th>
                   </tr>
 
-                  <tr align="center">
+                  <tr align="center" style="background-color: lightgray;">
                      <th><input type="checkbox" class="select-all-checkbox" id="select-all-checkbox"> Select All</th>
                      <th>Serial No</th>
                      <th>Make</th>
                      <th>Capacity (KW)</th>
                      <th>Inverter No</th>
                      <th>Inverter Barcode</th>
-                     <th>Item Type</th>
+<!--                     <th>Item Type</th>-->
                   </tr>
                </thead>
                <tbody>
@@ -219,44 +392,40 @@
 <!--                     <td><input type="checkbox" class="checkbox-input" name="selected_items" value="{{ item.barcode_data }}"></td>-->
                       <td><input type="checkbox" class="checkbox-input" name="selected_items" value="{{ item.pk }}"></td>
                      <td>{{ forloop.counter }}</td>
-                     <td class="label-field"><span>{{ item.company_name }}</span><input type="text" name="company_name_{{ item.pk }}" class="editable-text" value="{{ item.company_name }}" style="display: none;"></td>
-                     <td class="label-field"><span>{{ item.wattage }}</span><input type="text" name="wattage_{{ item.pk }}" class="editable-text" value="{{ item.wattage }}" style="display: none;"></td>
+                     <td class="label-field" class="text-capitalize"><span class="text-capitalize">{{ item.company_name }}</span><input type="text" name="company_name_{{ item.pk }}" value="{{ item.company_name }}" style="display: none;"></td>
+                     <td class="label-field"><span>{{ item.wattage }} Kw</span><input type="text" name="wattage_{{ item.pk }}" value="{{ item.wattage }} Kw" style="display: none;"></td>
                      <td>{{ item.barcode_data }}</td>
-                     <td>
-                        {% if item.barcode_type == 'CODE39' %}
-                        <img src="{{ item.image.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
-                        {% else %}
-                        <img src="{{ item.barcode_path.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
-                        {% endif %}
-                     </td>
-                     <td>
-                        <select class="form-control dropdown-list" name="product1_{{ item.pk }}" align="center" disabled>
-                            <option value=""></option>
-                            <option value="SolarPanel">SolarPanel</option>
-                            <option value="Inverter">Inverter</option>
-                        </select>
-                     </td>
+                          <td>
+                              {% if item.barcode_path %}
+                                    {% if item.barcode_type == 'CODE39' %}
+                                        <img src="{{ item.image.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
+                                    {% else %}
+                                        <img src="{{ item.barcode_path.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
+                                    {% endif %}
+                                {% elif item.image %}
+                                    <img src="{{ item.image.url }}" alt="Barcode Image" class="zoomable-image" style="width: 150px; height: auto; cursor: zoom-in;">
+                                {% else %}
+                                    <span>Barcode Not Available</span>
+                                {% endif %}
+
+                            </td>
+
                   </tr>
                   {% endfor %}
                </tbody>
             </table>
          </div>
       </div>
+      </fieldset>
       {% endif %}
-<!--      &lt;!&ndash; Display success and error messages &ndash;&gt;-->
-<!--   {% if messages %}-->
-<!--   <div class="messages">-->
-<!--       {% for message in messages %}-->
-<!--       <div class="alert alert-{{ message.tags }}">-->
-<!--           {{ message }}-->
-<!--       </div>-->
-<!--       {% endfor %}-->
-<!--   </div>-->
-<!--   {% endif %}-->
 
+<div class="btn-block sm-12">
       {% if solar_items or inverter_items or replace_items %}
-         <button type="submit" class="btn btn-primary" id="update-selected" style="float: right; margin-right: 17px; padding: 2px 0px; font-size: 17px;">  Update Barcode</button>
+         <button type="submit" class="btn btn-primary" id="update-selected" style="width: 100%; height: 50px; font-size: 20px; font-weight: bold;"><i class="nav-icon fas fa-trash-alt" aria-hidden="true"></i>  Delete  Selected  Barcode</button>
       {% endif %}
+          <br>
+          <br>
+    </div>
 
    </form>
 
@@ -264,45 +433,11 @@
     // Display success and error messages in an alert
     {% if messages %}
     {% for message in messages %}
-    alert("{{ message }}");
+       <li{% if not forloop.last %} class="not-last"{% endif %}>{{ message }}</li>
     {% endfor %}
     {% endif %}
 </script>
 
-
-<!--       &lt;!&ndash; Add your existing HTML code here &ndash;&gt;-->
-<!--&lt;!&ndash; Add a form element for your checkboxes &ndash;&gt;-->
-<!--<form method="POST" action="{% url 'detect_barcodes-edit_barcode' %}">-->
-<!--    {% csrf_token %}-->
-<!--    {% if solar_items %}-->
-<!--    <div class="col-md-12 mx-auto">-->
-<!--        <div class="table-responsive">-->
-<!--            <caption>-->
-<!--                <h3>Solar Panel Items</h3>-->
-<!--            </caption>-->
-<!--            <table class="table solar-table">-->
-<!--                &lt;!&ndash; Table headers and other content here &ndash;&gt;-->
-<!--                <tbody>-->
-<!--                    {% for item in solar_items %}-->
-<!--                    <tr align="center">-->
-<!--                        &lt;!&ndash; Add a checkbox for each row with the item ID as the value &ndash;&gt;-->
-<!--                        <td><input type="checkbox" class="checkbox-input" name="selected_items" value="{{ item.pk }}"></td>-->
-<!--                        &lt;!&ndash; Rest of the table row content &ndash;&gt;-->
-<!--                        &lt;!&ndash; Add the hidden input fields for editing &ndash;&gt;-->
-<!--                        <td class="label-field"><span>{{ item.company_name }}</span><input type="text" name="company_name_{{ item.pk }}" class="editable-text" value="{{ item.company_name }}" style="display: none;"></td>-->
-<!--                        <td class="label-field"><span>{{ item.wattage }}</span><input type="text" name="wattage_{{ item.pk }}" class="editable-text" value="{{ item.wattage }}" style="display: none;"></td>-->
-<!--                        &lt;!&ndash; Rest of the row content &ndash;&gt;-->
-<!--                    </tr>-->
-<!--                    {% endfor %}-->
-<!--                </tbody>-->
-<!--            </table>-->
-<!--        </div>-->
-<!--    </div>-->
-<!--    {% endif %}-->
-
-<!--    &lt;!&ndash; Add a submit button for updating the selected items &ndash;&gt;-->
-<!--    <button type="submit" class="btn btn-primary" id="update-selected">Update Selected</button>-->
-<!--</form>-->
 
 <!-- Add your existing JavaScript code here -->
 <!-- Update checkbox handling to reflect the changes -->
@@ -325,11 +460,11 @@
             });
         } else {
             labelFields.forEach((label) => {
-                label.querySelector('span').style.display = 'table-cell';
+                label.querySelector('span').style.display = 'none';
             });
 
             inputFields.forEach((input) => {
-                input.style.display = 'none';
+                input.style.display = 'table-cell';
             });
         }
     }
@@ -498,11 +633,11 @@
             const inputFields = row.querySelectorAll('.editable-text');
 
             labelFields.forEach((label) => {
-                label.querySelector('span').style.display = checkbox.checked ? 'none' : 'table-cell';
+                label.querySelector('span').style.display = checkbox.checked ? 'table-cell' : 'none';
             });
 
             inputFields.forEach((input) => {
-                input.style.display = checkbox.checked ? 'table-cell' : 'none';
+                input.style.display = checkbox.checked ? 'none' : 'table-cell';
             });
         }
 
@@ -569,4 +704,39 @@
         }
     });
 </script>
+ <!-- Include jQuery -->
+    <script src="path/to/jquery.min.js"></script>
+
+    <!-- Include DataTables script -->
+    <script type="text/javascript" charset="utf8" src="path/to/datatables.min.js"></script>
+
+
+ <!-- Include jQuery -->
+    <script src="path/to/jquery.min.js"></script>
+
+    <!-- Include DataTables script -->
+    <script type="text/javascript" charset="utf8" src="path/to/datatables.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+           // Destroy existing DataTable instance if it exists
+            if ($.fn.DataTable.isDataTable('.customDataTable')) {
+                $('.customDataTable').DataTable().destroy();
+            }
+
+        // Initialize DataTable for all tables with the common class
+        var dataTable = $('.customDataTable').DataTable({
+            // Add any DataTables options you need
+          //  "paging": true, // Enable pagination
+          //  "searching": true // Enable search box
+        });
+
+        // Add event listener to the global search input
+        $('#globalSearch').on('input', function() {
+            dataTable.search(this.value).draw();
+        });
+    });
+</script>
+
+
 {% endblock %}

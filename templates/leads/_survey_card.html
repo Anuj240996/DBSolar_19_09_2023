@@ -1,0 +1,41 @@
+<div class="card p-2 mb-2" id="survey-{{ survey.id }}">
+  <div class="d-flex justify-content-between">
+    <div>
+      <strong>Survey #{{ survey.id }}</strong>
+      <div class="small text-muted">Lead: <a href="{% url 'leads:lead_detail' survey.lead.id %}">{{ survey.lead.name }}</a></div>
+      <div class="small text-muted">Scheduled: {{ survey.scheduled_at|date:"Y-m-d H:i" }}</div>
+      <div class="small">Engineer: {% if survey.assigned_engineer %}{{ survey.assigned_engineer.get_full_name|default:survey.assigned_engineer.username }}{% else %}Unassigned{% endif %}</div>
+    </div>
+    <div class="text-end">
+      <div class="badge bg-{{ 'success' if survey.feasibility else 'secondary' }}">{{ survey.feasibility|yesno:"Feasible,Pending" }}</div>
+    </div>
+  </div>
+  <div class="mt-2">
+    <div><strong>Recommended (kW):</strong> {{ survey.recommended_size_kw }}</div>
+    <div class="mt-2">
+      <strong>Images</strong>
+      <div class="d-flex flex-wrap gap-2 mt-1">
+        {% for img in survey.images %}
+          <a href="{{ img }}" target="_blank"><img src="{{ img }}" style="height:64px;object-fit:cover;border-radius:4px;border:1px solid #eee" /></a>
+        {% empty %}
+          <div class="text-muted">No images</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-2 d-flex gap-2">
+    <form hx-post="{% url 'leads:survey_upload_image' survey.id %}" hx-target="#survey-{{ survey.id }}" hx-swap="outerHTML" enctype="multipart/form-data" method="post" class="d-flex gap-2">
+      {% csrf_token %}
+      <input type="file" name="images" multiple class="form-control form-control-sm">
+      <button class="btn btn-sm btn-outline-primary" type="submit">Upload</button>
+    </form>
+    <form hx-post="{% url 'leads:survey_approve' survey.id %}" hx-target="#survey-{{ survey.id }}" hx-swap="outerHTML" method="post" class="d-flex gap-2">
+      {% csrf_token %}
+      <input type="hidden" name="feasibility" value="true">
+      <button class="btn btn-sm btn-success" type="submit">Approve for Quotation</button>
+    </form>
+    <a href="{% url 'leads:survey_detail' survey.id %}" class="btn btn-sm btn-outline-secondary">Open</a>
+  </div>
+</div>
+

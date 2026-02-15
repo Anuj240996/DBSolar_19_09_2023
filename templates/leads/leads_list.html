@@ -1,0 +1,114 @@
+{% extends "partials/base.html" %}
+{% block title %}Leads{% endblock %}
+{% block content %}
+<!-- TEMPLATE: templates/leads/leads_list.html -->
+<div class="container-fluid mt-3">
+  <div class="row">
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h5>Filters</h5>
+        <form method="get" id="lead-filters">
+          <div class="mb-2">
+            <label class="form-label">Search</label>
+            <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Name, phone, address">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">From</label>
+            <input type="date" name="from" value="{{ filters.from }}" class="form-control">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">To</label>
+            <input type="date" name="to" value="{{ filters.to }}" class="form-control">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Stage</label>
+            <select name="stage" class="form-select">
+              <option value="">Any</option>
+              {% for s in stages %}
+                <option value="{{ s.id }}" {% if filters.stage|stringformat:"s" == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Source</label>
+            <input name="source" value="{{ filters.source }}" class="form-control" placeholder="Lead source">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">City</label>
+            <input name="city" value="{{ filters.city }}" class="form-control" placeholder="City">
+          </div>
+          <div class="d-grid">
+            <button class="btn btn-sm btn-primary">Apply</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="col-md-9">
+      <div class="card p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Leads <small class="text-muted">(<span id="leads-count">{{ paginator.count if paginator else leads|length }}</span>)</small></h5>
+          <div>
+            <a id="add-lead-btn" href="{% url 'leads:lead_create' %}" class="btn btn-sm btn-primary">Add Lead</a>
+            <a href="{% url 'leads:leads_export' %}?{% if query %}q={{ query }}&{% endif %}" class="btn btn-sm btn-outline-secondary">Export CSV</a>
+          </div>
+        </div>
+        <table class="table table-striped mt-3">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>City</th>
+              <th>Electricity Bill</th>
+              <th>Property Type</th>
+              <th>Stage</th>
+              <th>Assigned</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for lead in leads %}
+            <tr hx-get="{% url 'leads:lead_detail' lead.id %}" hx-target="#main-modal-body" hx-trigger="click">
+              <td>{{ lead.name }}</td>
+              <td>{{ lead.phone }}</td>
+              <td>{{ lead.city }}</td>
+              <td>{{ lead.electricity_bill }}</td>
+              <td>{{ lead.property_type }}</td>
+              <td>{{ lead.stage.name if lead.stage }}</td>
+              <td>{% if lead.assigned_to %}{{ lead.assigned_to.get_full_name|default:lead.assigned_to.username }}{% endif %}</td>
+              <td>{{ lead.created_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8">No leads found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        {% if paginator and paginator.num_pages > 1 %}
+        <nav aria-label="Page navigation">
+          <ul class="pagination">
+            {% if leads.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ leads.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">Previous</a></li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+            {% for p in paginator.page_range %}
+              <li class="page-item {% if leads.number == p %}active{% endif %}">
+                <a class="page-link" href="?page={{ p }}{% if query %}&q={{ query }}{% endif %}">{{ p }}</a>
+              </li>
+            {% endfor %}
+            {% if leads.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ leads.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Next</a></li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</div>
+<div id="main-modal-body"></div>
+{% endblock %}
+

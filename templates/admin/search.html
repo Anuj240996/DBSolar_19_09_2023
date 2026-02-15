@@ -45,24 +45,42 @@
                   {% csrf_token %}
                   <div class="row mb-1">
                      <div class="col-md-12">
-                        <div class="question">
-
+<!--                        <div class="question">-->
+<!--                           {% if user.is_superuser %}-->
+<!--                           <label>Search Staff / Consumer</label><br>-->
+<!--                           {% ifequal search_by 'staff' %}-->
+<!--                           <input type="radio" name="search_by" value="staff" id="radio_1" checked>-->
+<!--                           {% else %}-->
+<!--                           <input type="radio" name="search_by" value="staff" id="radio_1">-->
+<!--                           {% endifequal %}-->
+<!--                           <label for="radio_1" class="radio"><span><b>Search by Staff</b></span></label>-->
+<!--                           {% endif %}-->
+<!--                           {% ifequal search_by 'consumer' %}-->
+<!--                           <input type="radio" name="search_by" value="consumer" id="radio_2" checked>-->
+<!--                           {% else %}-->
+<!--                           <input type="radio" name="search_by" value="consumer" id="radio_2">-->
+<!--                           {% endifequal %}-->
+<!--                           <label for="radio_2" class="radio"><span><b>Search by Consumer</b></span></label>-->
+<!--                        </div>-->
+                        <!--                        <div class="question">-->
+                          <div class="checkbox-column">
                            {% if user.is_superuser %}
                            <label>Search Staff / Consumer</label><br>
                            {% ifequal search_by 'staff' %}
-                           <input type="radio" name="search_by" value="staff" id="radio_1" checked>
+                              <label class="checkbox-label"><input type="radio" class="checkbox-input" name="search_by" value="staff" id="radio_1" checked><b>Search by Staff</b></label>
                            {% else %}
-                           <input type="radio" name="search_by" value="staff" id="radio_1">
+                               <label class="checkbox-label"><input type="radio" class="checkbox-input" name="search_by" value="staff" id="radio_1"><b>Search by Staff</b></label>
                            {% endifequal %}
-                           <label for="radio_1" class="radio"><span><b>Search by Staff</b></span></label>
+<!--                           <label for="radio_1"><span><b>Search by Staff</b></span></label>-->
                            {% endif %}
                            {% ifequal search_by 'consumer' %}
-                           <input type="radio" name="search_by" value="consumer" id="radio_2" checked>
+                               <label class="checkbox-label"><input type="radio" class="checkbox-input" name="search_by" value="consumer" id="radio_2" checked><b>Search by Consumer</b></label>
                            {% else %}
-                           <input type="radio" name="search_by" value="consumer" id="radio_2">
+                               <label class="checkbox-label"><input type="radio" class="checkbox-input" name="search_by" value="consumer" id="radio_2"><b>Search by Consumer</b></label>
                            {% endifequal %}
-                           <label for="radio_2" class="radio"><span><b>Search by Consumer</b></span></label>
-                        </div>
+<!--                           <label for="radio_2"><span><b>Search by Consumer</b></span></label>-->
+<!--                          </div>-->
+                          </div>
                      </div>
                   </div>
                   <div class="card-footer">
@@ -98,7 +116,7 @@
                                  <option value="" {% if status_filter == "" %}selected{% endif %}>All</option>
                                  <option value="New Request" {% if status_filter == "New Request" %}selected{% endif %}>New Request</option>
                                  <option value="Assigned" {% if status_filter == "Assigned" %}selected{% endif %}>Assigned</option>
-                                 <option value="Team On the Way" {% if status_filter == "Team On the Way" %}selected{% endif %}>Team On the Way</option>
+                                 <option value="In Progress" {% if status_filter == "In Progress" %}selected{% endif %}>In Progress</option>
                                  <option value="Work in Progress" {% if status_filter == "Work in Progress" %}selected{% endif %}>Work in Progress</option>
                                  <option value="Request Completed" {% if status_filter == "Request Completed" %}selected{% endif %}>Request Completed</option>
                              </select>
@@ -183,7 +201,7 @@
                               <td class="text-center"><a class="badge info" href="{% url 'firereport-viewRequestDetails' i.id %}"> <i class="fa fa-eye"></i> &nbsp;&nbsp;Assigned&nbsp;&nbsp; </a></td>
                               {% elif i.Status == 'Work in Progress' %}
                               <td class="text-center"><a class="badge warning" href="{% url 'firereport-viewRequestDetails' i.id %}"><i class="fa fa-eye"></i> Work Initiated </a></td>
-                              {% elif i.Status == 'Team On the Way' %}
+                              {% elif i.Status == 'In Progress' %}
                               <td class="text-center"><a class="badge default" href="{% url 'firereport-viewRequestDetails' i.id %}"> <i class="fa fa-eye"></i> In Progress </a></td>
                               {% else %}
                               <td class="text-center"><a class="badge danger" href="{% url 'firereport-viewRequestDetails' i.id %}"> <i class="fa fa-eye"></i> &nbsp;New Request </a></td>
@@ -220,7 +238,7 @@
                               <td class="text-center"><a class="badge info" href="{% url 'firereport-viewRequestDetails' i.id %}"> <i class="fa fa-eye"></i> &nbsp;&nbsp;Assigned&nbsp;&nbsp; </a></td>
                               {% elif i.Status == 'Work in Progress' %}
                               <td class="text-center"><a class="badge warning" href="{% url 'firereport-viewRequestDetails' i.id %}"><i class="fa fa-eye"></i> Work Initiated </a></td>
-                              {% elif i.Status == 'Team On the Way' %}
+                              {% elif i.Status == 'In Progress' %}
                               <td class="text-center"><a class="badge default" href="{% url 'firereport-viewRequestDetails' i.id %}"> <i class="fa fa-eye"></i> In Progress </a></td>
                               {% else %}
                               <td class="text-center"><a class="badge danger" href="{% url 'firereport-viewRequestDetails' i.id %}"> <i class="fa fa-eye"></i> &nbsp;New Request </a></td>

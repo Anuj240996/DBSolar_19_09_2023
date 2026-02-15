@@ -24,12 +24,33 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = '@ujr-e&a%8m%6!z(+ka16+(sm6cug(h6noe%#p%=6%d2nz5t+#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True  # Temporarily enabled to see error details
 
-ALLOWED_HOSTS = []
-
+#ALLOWED_HOSTS = ['anujdeshmukh24.pythonanywhere.com']
+ALLOWED_HOSTS = ['www.db-solar.co.in', 'db-solar.co.in', 'localhost', '127.0.0.1', 'testserver']
 
 # Application definition
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+
+
+# Optional: Set token lifetimes
+from datetime import timedelta
+
+# SIMPLE_JWT = {
+#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+#     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+# }
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -44,10 +65,22 @@ INSTALLED_APPS = [
     'customer.apps.CustomerConfig',
     'crispy_forms',
     'firereport.apps.FirereportConfig',
+    'widget_tweaks',
+    'user.group_filters',
     'active_link',
     'generate_barcodes.apps.GenerateBarcodesConfig',
     'detect_barcodes.apps.DetectBarcodesConfig',
-
+    'product.apps.ProductConfig',
+    'inventory.apps.InventoryConfig',
+    'transactions.apps.TransactionsConfig',
+    'quotation.apps.QuotationConfig',
+    'homepage.apps.HomepageConfig',
+    'leads.apps.LeadsConfig',
+    'rest_framework',
+    'corsheaders',
+    'api.apps.ApiConfig',
+    'rest_framework_simplejwt',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -56,8 +89,10 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'user.middleware.CPPermissionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 
@@ -82,32 +117,53 @@ TEMPLATES = [
 WSGI_APPLICATION = 'inventoryproject.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/3.1/ref/settings/#databases
+#DATABASES = {
+#    'default': {
+#        'ENGINE': 'django.db.backends.sqlite3',
+#       #'NAME': #'/home/anujdeshmukh24/DBSolar_19_09_2023/DBSolar_19_09_2023/db.sqlite3',
+#        'NAME': BASE_DIR / "db.sqlite3",
+#   }
+#}
 
 DATABASES = {
     'default': {
-        # 'ENGINE': 'django.db.backends.mysql',
-        # 'NAME': 'inventory',
-        # 'USERNAME': 'root',
-        # 'HOST': 'localhost',
-        # 'PORT': 3306,
-        # 'PASSWORD': '',  # Your Password
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'db_solar',
+        'USER': 'postgres',
+        'PASSWORD': 'root',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'dbsolarco_db',
-#         'USER': 'root',
-#         'PASSWORD': 'root',
-#         'HOST': 'localhost', # Use appropriate hostname if the MySQL server is remote.
-#         'PORT': '', # Leave it empty to use the default port (usually 3306).
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'db_solar',
+#         # 'USER': 'root',
+#         'PASSWORD': 'Anuj@25032503',
+#         'HOST': '',
+#         'PORT': '5432',
 #     }
 # }
+
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'anujdeshmukh24$db',
+#         'USER': 'anujdeshmukh24',
+#         'PASSWORD': 'Db@275194',
+#         'HOST': 'anujdeshmukh24.mysql.pythonanywhere-services.com',
+#         'PORT': '3306',
+#         'OPTIONS': {
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+#         },
+#     }
+# }
+
+
+
 
 
 # Password validation
@@ -134,8 +190,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-#TIME_ZONE = 'UTC'
-TIME_ZONE = 'Asia/kolkata'
+# Use India timezone for correct local date/time display.
+TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 
 USE_L10N = True
@@ -159,10 +215,14 @@ STATICFILES_DIRS = [
 
 STATIC_ROOT = (BASE_DIR/"asert/")
 
-LOGIN_REDIRECT_URL = 'dashboard-index'
+
+LOGIN_REDIRECT_URL = 'user:post_login_redirect'
 #CUSTOMER_URL = 'customer-index'
 
 LOGIN_URL = 'user-login'
+
+# LOGOUT_REDIRECT_URL = '/'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -172,4 +232,17 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'deshmukh.ssd24@gmail.com'
 EMAIL_HOST_PASSWORD = 'pesebzcjfrxnuvsg'
 PASSWORD_RESET_TIMEOUT = 240
-SESSION_EXPIRE_AT_BROWSER_CLOSE=False
+# SESSION_EXPIRE_AT_BROWSER_CLOSE=False
+CORS_ALLOW_ALL_ORIGINS = True
+
+
+
+# Session expires after 15 minutes of inactivity
+SESSION_COOKIE_AGE = 10 * 60   # 15 minutes (in seconds)
+
+# Expire when browser is closed? (optional)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# Reset timer each request (so active users stay logged in)
+SESSION_SAVE_EVERY_REQUEST = True
+

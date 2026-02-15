@@ -9,6 +9,7 @@ from customer.models import Customer
 
 
 class BarcodeImage(models.Model):
+    id = models.AutoField(primary_key=True)
     barcode_data = models.CharField(max_length=255)
     file_saved_at = models.DateTimeField()
     image = models.ImageField(upload_to='static/barcode_images')
@@ -29,6 +30,7 @@ class BarcodeImage(models.Model):
         app_label = 'detect_barcodes'
 
 class InverterImage(models.Model):
+    id = models.AutoField(primary_key=True)
     barcode_data = models.CharField(max_length=255)
     file_saved_at = models.DateTimeField()
     image = models.ImageField(upload_to='static/barcode_images')

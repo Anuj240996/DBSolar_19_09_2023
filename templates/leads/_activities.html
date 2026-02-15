@@ -1,0 +1,14 @@
+{# Partial: activities list for a lead #}
+<div id="activities-list">
+  {% for act in activities %}
+  <div class="media mb-2">
+    <div class="media-body">
+      <h6 class="mt-0">{{ act.get_type_display }} <small class="text-muted"> - {{ act.created_at|date:"Y-m-d H:i" }}</small></h6>
+      <div>{{ act.note }}</div>
+    </div>
+  </div>
+  {% empty %}
+  <p class="text-muted">No activity yet.</p>
+  {% endfor %}
+</div>
+

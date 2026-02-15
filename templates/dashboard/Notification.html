@@ -2,10 +2,6 @@
 {% block title %}Order Page{% endblock %}
 {% load static %}
 {% block content %}
-<!--{% block nav-btn %}-->
-<!--           {{ notification.count }}-->
-<!--           {% endblock nav-btn %}-->
-
 
 <div class="wrapper">
    <div class="content container-fluid">
@@ -19,13 +15,6 @@
                </ul>
             </div>
             <div class="col-auto text-right float-right ml-auto">
-<!--               &lt;!&ndash; Button trigger modal &ndash;&gt;-->
-<!--<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalCenter">-->
-<!--  View Notification-->
-<!--</button>-->
-
-
-
             </div>
          </div>
       </div>
@@ -44,33 +33,47 @@
 
 
                      <div class="table-responsive">
-                     <table class="table table-hover table-center table.dataTable.table-sm mb-0 datatable table.sm">
+                     <table id="yourDataTable" class="table table-hover table-center table.dataTable.table-sm mb-0 datatable table.sm">
                         <thead class="table-success">
                            <tr>
-                              <th scope="col" class="text-center ml-0" style="width:30%">Message</th>
-                              <th scope="col">Date & Time</th>
-                               <th scope="col">Sender Name</th>
+                              <th style="width:1%">Sr No.</th>
+                              <th scope="col" style="text-align: center; width: 10%;">Date & Time</th>
+                              <th scope="col" style="text-align: center; width:57%">Message</th>
+                               <th scope="col" style="text-align: center; width:20%">Sender Name</th>
 
-                               <th scope="col" class="text-right ml-6">Action</th>
+                            <th scope="col" class="ml-6" style="text-align: center; width: 12%;">Action</th>
+
 
                            </tr>
                         </thead>
                         <tbody>
                         {% for i in notification %}
                            <tr>
-                              <td style="width:30%">{{i.message}}</td>
-                              <td>{{i.created_at | date:"d/m/Y H:i:s"}}</td>
-                               <td class="text-capitalize text-center">{{i.sender.profile.designation}}</td>
+
+                               <td style="text-align: center;"></td>
+                               <td style="text-align: center;">{{i.created_at | date:"d/m/Y H:i:s"}}</td>
+                               {% if i.status == 0 %}
+                                 <td>
+                                    <span class="message"></span>
+                                  </td>
+                                {% else %}
+                                  <td>
+                                       <span class="message" style="text-align: center; display: block; margin: 0 auto;">{{ i.message }}</span>
+                                    </td>
+
+                                {% endif %}
+                               <td class="text-capitalize text-center" style="text-align: center; display: block; margin: 0 auto;">{{i.sender.profile.designation}}</td>
 
                                <td class="text-right">
                                    <div class="Action">
                                        {% if i.status == 0 %}
-                                     <a href="{% url 'Staff_Notification_Mark_Done' status=i.id %}" class="btn btn-primary">Mark As Done</a>
+                                     <a href="{% url 'Staff_Notification_Mark_Done' status=i.id %}" class="btn btn-success" style="width: 90px;">UnRead</a>
                                         {% else %}
-                                     <button class="btn btn-primary" disabled="disabled">Mark As Done</button>
+                                     <button class="btn btn-success" disabled="disabled" style="width: 90px;">Read</button>
                                        {% endif %}
                                    </div>
                                     </td>
+
                            </tr>
                         {% endfor %}
 
@@ -173,4 +176,63 @@
   </div>
 </div>
 {% endfor %}
+
+<script>
+$(document).ready(function () {
+    $('.unread-button').click(function (e) {
+        e.preventDefault();
+        var rowId = $(this).data('row-id');
+        var row = $('tr[data-row-id="' + rowId + '"]');
+        var messageCell = row.find('td:first-child');
+
+        // Toggle message visibility
+        messageCell.toggle();
+
+        // Change button from "UnRead" to "Read"
+        $(this).removeClass('btn-primary unread-button').addClass('btn-primary read-button').text('Read');
+    });
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    let dataTable = $('#yourDataTable').DataTable();
+    //let dataTable = $('#yourDataTable').DataTable({
+    //    scrollX: true,
+    //    fixedHeader: true,
+    //    columnDefs: [
+    //        { targets: 0, orderable: false } // '0' represents the index of the 'Sr No.' column (zero-based)
+    //    ]
+    //});
+
+    // Check if the DataTable is already initialized
+    if ($.fn.dataTable.isDataTable('#yourDataTable')) {
+        dataTable.destroy(); // If initialized, destroy the DataTable
+    }
+
+    dataTable = $('#yourDataTable').DataTable({
+        scrollX: true, // Enable horizontal scrolling
+        //scrollY: '50vh', // Adjust the height as needed
+        scrollCollapse: true,
+        fixedHeader: {
+            header: true,
+            footer: false // Do not fix the footer to prevent it from moving
+        },
+        columnDefs: [
+           { targets: 0, orderable: false } // Disable sorting for the Sr No. column (zero-based)
+        ]
+
+    });
+
+     $('#yourDataTable tbody tr').each(function(index) {
+        $(this).find('td:first').text(index + 1);
+    });
+
+      dataTable.on('order.dt search.dt', function() {
+        dataTable.column(0, { search: 'applied', order: 'applied' }).nodes().each(function(cell, i) {
+            cell.innerHTML = i + 1;
+        });
+    }).draw();
+});
+</script>
+
 {% endblock %}

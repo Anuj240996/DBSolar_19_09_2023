@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 {% extends 'partials/base.html' %}
 {% block title %}Order Page{% endblock %}
+{% load static %}
 {% block content %}
 <div class="content container-fluid">
 <div class="page-header">
@@ -30,7 +31,7 @@
    <div class="col-xl-3 col-sm-6 col-12 d-flex">
 
       <div class="card bg-five w-100 my-card shadow">
-          <a class="text-decoration-none text-dark" href="{% url 'customer-view_all' %}?Cust_type=Indivisual">
+          <a class="text-decoration-none text-dark" href="{% url 'customer-view_all' %}?Cust_type=Residential">
          <div class="card-body">
             <div class="db-widgets d-flex justify-content-between align-items-center">
                <div class="db-icon">
@@ -38,7 +39,7 @@
                </div>
                <div class="db-info text-right">
                   <h3>{{ totalIndividual }}</h3>
-                  <h6>&nbsp;&nbsp;&nbsp;&nbsp;Individual Cust</h6>
+                  <h6>&nbsp;&nbsp;&nbsp;&nbsp;Residential Cust</h6>
                </div>
             </div>
          </div>
@@ -48,7 +49,7 @@
    <div class="col-xl-3 col-sm-6 col-12 d-flex">
 
       <div class="card bg-six w-100 my-card shadow">
-          <a class="text-decoration-none text-dark" href="{% url 'customer-view_all' %}?Cust_type=Company">
+          <a class="text-decoration-none text-dark" href="{% url 'customer-view_all' %}?Cust_type=Industrial">
          <div class="card-body">
             <div class="db-widgets d-flex justify-content-between align-items-center">
                <div class="db-icon">
@@ -56,7 +57,7 @@
                </div>
                <div class="db-info text-right">
                   <h3>{{ totalCompany }}</h3>
-                  <h6>&nbsp;&nbsp;&nbsp;&nbsp;Company Cust</h6>
+                  <h6>&nbsp;&nbsp;&nbsp;&nbsp;Industrial Cust</h6>
                </div>
             </div>
          </div>
@@ -108,65 +109,141 @@
                               {% if customers %}
                                     {% if customer_type is None %}
                                       {% with customer_type='All' %}
-                                         <h4 align="center">Result against " <span style="color: red">{{ customer_type }}</span> " Consumer </h4><br>
+                                         <h4 align="center">Result against " <span style="color: brown">{{ customer_type }}</span> " Consumer </h4><br>
                                       {% endwith %}
                                     {% else %}
-                                       <h4 align="center">Result against " <span style="color: red">{{ customer_type }}</span> " Consumer </h4><br>
+                                       <h4 align="center">Result against " <span style="color: brown">{{ customer_type }}</span> " Consumer </h4><br>
                                      {% endif %}
 
-
-                           <div class="table-responsive">
-
-                              <table class="table table-hover table-center table.dataTable.table-sm mb-0  table.sm">
+        <table id="yourDataTable" class="table table-hover table-center table.dataTable.table-sm mb-0 datatable table.sm">
                                  <thead class="table-success">
                                     <tr>
                                        <th scope="col">Sr No.</th>
                                        <th scope="col">Cust id</th>
                                        <th scope="col">Consumer / Farm Name</th>
                                        <th scope="col">Capacity</th>
-                                       <th scope="col">UPS Soft</th>
+<!--                                       <th scope="col">UPS Soft</th>-->
                                        <th scope="col">Consumer Type</th>
                                        <th scope="col">Mobile</th>
                                        <th scope="col">City</th>
-                                       <th scope="col">Activation Date</th>
+                                       <th scope="col">PO Date</th>
                                        <th class="text-center">Action</th>
+                                        <th scope="col">Project Status</th>
+                                       <th scope="col">MSEB Status</th>
+
+
                                     </tr>
                                  </thead>
-                                 {% for Cust in customers %}
+
                                  <tbody>
+                                    {% for Cust in customers %}
                                     <tr>
                                        <td>{{forloop.counter }}</td>
                                        <td>{{Cust.Cust_id}}</td>
                                        {% if Cust.Comp_name %}
                                         <td class="text-capitalize">
-                                          <a href="{% url 'customer-customer-updatepage' Cust.Cust_id %}" class="text-capitalize">{{Cust.Comp_name}}</a>
+                                          <a href="{% url 'customer-customer-updatepage' Cust.Cust_id %}" class="text-capitalize">{{Cust.Comp_name}} , &nbsp;{{Cust.City}}</a>
                                         </td>
                                        {% else %}
                                         <td class="text-capitalize">
-                                          <a href="{% url 'customer-customer-updatepage' Cust.Cust_id %}" class="text-capitalize">{{Cust.first_name}} {{Cust.last_name}}</a>
+                                          <a href="{% url 'customer-customer-updatepage' Cust.Cust_id %}" class="text-capitalize">{{Cust.first_name}} {{Cust.last_name}} , &nbsp;{{Cust.City}}</a>
                                         </td>
                                         {% endif %}
                                        <td>{{Cust.Plant_Capacity}} Kwp</td>
-                                       <td class="text-capitalize">{{Cust.Ups_Soft}}</td>
+<!--                                       <td class="text-capitalize">{{Cust.Ups_Soft}}</td>-->
                                        <td class="text-capitalize">{{Cust.Cust_type}}</td>
                                        <td>{{Cust.phone}}</td>
                                        <td class="text-capitalize">{{Cust.City}}</td>
-                                       <td>{{Cust.Cus_Act_Date}}</td>
+                                       <td>{{ Cust.po_date|date:'d-m-Y' }}</td>
                                        <td class="text-right">
                                           <div class="actions">
 <!--                                             <a href="{% url 'customer-customer-update' Cust.Cust_id %}" class="btn btn-sm bg-success-light mr-2">-->
                                                   <a href="{% url 'customer-customer-updatepage' Cust.Cust_id %}" class="btn btn-sm bg-success-light mr-2">
                                              <i class="fa fa-eye" aria-hidden="true"></i>
                                              </a>
-
-
                                           </div>
                                        </td>
+                                        <td align="center">
+                                                {% if Cust.project_status %}
+                                                 {% if Cust.project_status == 'Completed' %}
+                                                   <a href="{% url 'customer-customer-updatepage' Cust.Cust_id %}" class="text-capitalize"><img src="{% static 'images/check 5.gif' %}" style="width: 25px;"><b style="color: green"> Completed</b></a>
+                                                 {% else %}
+                                                   <a href="{% url 'customer-customer-updatepage' Cust.Cust_id %}" class="text-capitalize"><img src="{% static 'images/pending1.gif' %}" alt="Pending" style="width: 25px;"><b style="color: orange"> Pending</b></a>
+                                                 {% endif %}
+                                                {% else %}
+                                                <span class="badge badge-danger">Pending</span>
+                                                {% endif %}
+                                        </td>
+                                        <td>
+                                                {% if Cust.mseb_data.exists %}
+                                                    {% with mseb_record=Cust.mseb_data.first %}
+                                                        {% if mseb_record.installation_date %}
+                                                            <a href="{% url 'customer-MSEB_tracking' Cust.Cust_id %}"><span class="badge badge-success">Completed</span></a>
+                                                        {% else %}
+                                                            <a href="{% url 'customer-MSEB_tracking' Cust.Cust_id %}"><span class="badge badge-warning">Pending</span></a>
+                                                        {% endif %}
+
+                                                    {% endwith %}
+                                                {% else %}
+                                                    {% if user.is_superuser %}
+                                                       <a href="{% url 'customer-MSEB' %}"><span class="badge badge-info">Upcoming</span></a>
+                                                    {% else %}
+                                                       <a href="#"><span class="badge badge-info">Upcoming</span></a>
+                                                    {% endif %}
+
+
+                                                {% endif %}
+                                        </td>
+
                                     </tr>
+                                    {% endfor %}
                                  </tbody>
-                                  {% endfor %}
                               </table>
                            </div>
                               {% endif %}
                            </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    let dataTable = $('#yourDataTable').DataTable();
+    //let dataTable = $('#yourDataTable').DataTable({
+    //    scrollX: true,
+    //    fixedHeader: true,
+    //    columnDefs: [
+    //        { targets: 0, orderable: false } // '0' represents the index of the 'Sr No.' column (zero-based)
+    //    ]
+    //});
+
+    // Check if the DataTable is already initialized
+    if ($.fn.dataTable.isDataTable('#yourDataTable')) {
+        dataTable.destroy(); // If initialized, destroy the DataTable
+    }
+
+    dataTable = $('#yourDataTable').DataTable({
+        scrollX: true, // Enable horizontal scrolling
+        //scrollY: '50vh', // Adjust the height as needed
+        scrollCollapse: true,
+        fixedHeader: {
+            header: true,
+            footer: false // Do not fix the footer to prevent it from moving
+        },
+        columnDefs: [
+           { targets: 0, orderable: false } // Disable sorting for the Sr No. column (zero-based)
+        ]
+
+    });
+
+     $('#yourDataTable tbody tr').each(function(index) {
+        $(this).find('td:first').text(index + 1);
+    });
+
+      dataTable.on('order.dt search.dt', function() {
+        dataTable.column(0, { search: 'applied', order: 'applied' }).nodes().each(function(cell, i) {
+            cell.innerHTML = i + 1;
+        });
+    }).draw();
+});
+</script>
+
+
 {% endblock %}

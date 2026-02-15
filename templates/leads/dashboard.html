@@ -1,0 +1,22 @@
+{% extends "partials/base.html" %}
+{% block title %}Leads Dashboard{% endblock %}
+{% block content %}
+<div class="container-fluid mt-3">
+  <h3>Leads Dashboard</h3>
+  <div class="row">
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h6>Total Leads (This Month)</h6>
+        <div class="display-4">{{ total_leads }}</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h6>New Leads (Today)</h6>
+        <div class="display-4">{{ new_leads_today }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

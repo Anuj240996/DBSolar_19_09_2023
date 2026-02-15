@@ -20,9 +20,24 @@ urlpatterns = [
     path('search/', views.search_view, name='detect_barcodes-search'),
     path('generate_pdf/', views.GeneratePDF, name='detect_barcodes-generate_pdf'),
     path('edit_barcode/', views.editbarcode, name='detect_barcodes-edit_barcode'),
+    path('display_product/', views.displayproduct, name='detect_barcodes-display_product'),
+    path('display_warranty/', views.displaywarranty, name='detect_barcodes-display_warranty'),
     path('editbarcode/', views.editbarcode, name='editbarcode'),  # The URL pattern for your editbarcode view
+    path('selected_records/', views.deletebarcode, name='detect_barcodes-selected_records'),  # The URL pattern for your editbarcode view
+    # path('scan-barcode/', views.save_barcodes, name='detect_barcodes-scan_barcode'),
+    # path('save_barcodes/', views.save_barcodes, name='save_barcodes'),
+    path('scan-barcode/', views.realtime_decode, name='detect_barcodes-scan_barcode'),
+    path('scan-barcode/', views.scan_barcode, name='scan_barcode'),
+    path('serial_barcode/', views.upload_and_display_view, name='detect_barcodes-serial_barcode'),
+    path('serial_barcode_inverter/', views.upload_and_display_view_inverter, name='detect_barcodes-serial_barcode_inverter'),
+    path('manual_serial_barcode/', views.manual_serial_barcode, name='detect_barcodes-manual_serial_barcode'),
+    path('manual_inverter_barcode/', views.manual_serial_barcode, name='detect_barcodes-manual_inverter_barcode'),
+
+    path('search_results/', views.search_barcode, name='detect_barcodes-search_results'),
+    # path('serial_barcode/', views.detect_serial_number_and_barcode, name='detect_barcodes-serial_barcode'),
 
     path('delete_barcode/', views.deletebarcode, name='detect_barcodes-delete_barcode'),
     path('deletebarcode/', views.deletebarcode, name='deletebarcode'),  # The URL pattern for your editbarcode view
-
+    path('promote/', views.promote_view, name='promote_page'),
+    path('promote/save_serials/', views.save_selected_serials, name='save_selected_serials'),
 ]

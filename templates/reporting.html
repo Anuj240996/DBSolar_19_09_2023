@@ -1,16 +1,22 @@
 {% extends 'partials/base.html' %}
 {% load static %}
 {% block content %}
-
-<body style="background-color: #f7f7f7;" >
-
-
 <div class="container mt-5" style="background-color: #f7f7f7;">
     <h3 class="page-title text-center">Online Complaint Portal</h3>
     <div class="card mt-1" style="border: 5px solid #573170;background-color: #f7f7f7;">
         <div class="card-body">
             <h2 class="card-title text-center" style="text-transform: uppercase; color:#573170;">Apply Now</h2><br><br>
             <hr>
+            {% if messages %}
+              {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                  {{ message }}
+                  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+              {% endfor %}
+            {% endif %}
             <form method="post" style="background-color: #f7f7f7;">
                 {% csrf_token %}
                 <div class="mb-3 row">
@@ -43,9 +49,29 @@
                 </div>
 
                 <div class="mb-3 row">
+                    <label class="col-sm-2 col-form-label"><b>Category</b></label>
+                    <div class="col-sm-10">
+                        <select name="ComplaintCategory" class="form-control" required>
+                            <option value="" selected disabled>-- Select Category --</option>
+                            {% for c in complaint_categories %}
+                                <option value="{{ c }}">{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Same categories for Web / Android / iOS.</small>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-sm-2 col-form-label"><b>Title</b></label>
+                    <div class="col-sm-10">
+                        <input type="text" name="ComplaintTitle" class="form-control" placeholder="Enter complaint title" required>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
                     <label class="col-sm-2 col-form-label"><b>Message</b></label>
                     <div class="col-sm-10">
-                        <textarea name="Message" class="form-control" placeholder="Message...." required></textarea>
+                        <textarea name="Message" class="form-control" placeholder="Describe your complaint...." required></textarea>
                     </div>
                 </div>
 
@@ -55,21 +81,5 @@
         </div>
     </div>
 </div>
-{% if error == "no" %}
-<script>
-        alert('Reporting Successfull');
-</script>
-{% endif %}
-
-{% if error == "yes" %}
-<script>
-        alert('Something went wrong, Try Again...');
-</script>
-{% endif %}
-
-<br><br><br>
-</body>
-</html>
-
 {% include 'footer.html' %}
 {% endblock %}

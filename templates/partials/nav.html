@@ -8,9 +8,63 @@
             top: 10px; /* Adjust the top value as needed to position the count1 value correctly */
             right: 15px; /* Adjust the right value as needed to position the count1 value correctly */
             display: inline-block; /* Add this to make the count visible in mobile mode */
+
         }
     }
+
 </style>
+<!--<style>-->
+<!--    /* Custom CSS for displaying count1 in mobile mode */-->
+<!--    @media (max-width: 767px) {-->
+<!--        .badge-warning.navbar-badge {-->
+<!--            position: absolute;-->
+<!--            top: 10px;-->
+<!--            right: 15px;-->
+<!--            display: inline-block;-->
+<!--        }-->
+<!--        .user-name {-->
+<!--            display: none; /* Hide user name on mobile */-->
+<!--        }-->
+<!--    }-->
+
+<!--    /* Show user name on desktop */-->
+<!--    @media (min-width: 768px) {-->
+<!--        .user-name {-->
+<!--            display: inline-block;-->
+<!--        }-->
+<!--    }-->
+<!--</style>-->
+
+  <style>
+                /* Hide user name on mobile */
+                @media (max-width: 767px) {
+                    #user-name {
+                        display: none;
+                    }
+
+                    .notification_view {
+                        right: 0; /* Align the dropdown menu to the right */
+                        left: auto;
+                        width: 200px;
+                    }
+                     .profile {
+                        max-width: 200px; /* Adjust the max-width as needed */
+                        text-align: right;
+                    }
+                }
+
+                /* Show user name on desktop */
+                @media (min-width: 768px) {
+                    #user-name {
+                        display: inline-block;
+                    }
+                }
+
+
+            </style>
+
+
+
 {% if user.is_authenticated %}
 <script>
     function testClearNoti() {
@@ -19,13 +73,14 @@
 </script>
 <div class="header">
    <div class="header-left">
-      <a href="#" class="logo">
-      <img src="/static/images/dblogo200.png" alt="Logo" > &nbsp;<font size="6" >DB SOLAR</font>
+      <a href="/index" class="logo">
+      <img src="/static/images/DB SOLAR PNG LOGO 3 (6).png" alt="Logo" width="100%">
       </a>
       <a href="#" class="logo logo-small">
       <img src="/static/images/dblogosmall.png"  alt="Logo" width="30" height="30">
       </a>
    </div>
+
    <a href="javascript:void(0);" id="toggle_btn">
    <i class="fas fa-align-left"></i>
    </a>
@@ -41,7 +96,13 @@
                     <span class="badge badge-warning navbar-badge">
 
                         {% block nav-btn %}
-                            {{ count1 }}
+
+                             {% if count1 > 9 %}
+                                9<sup style="font-size: 100%;">+</sup>
+                            {% else %}
+                                {{ count1 }}
+                            {% endif %}
+<!--                         {{ count1 }}-->
                         {% endblock nav-btn %}
                     </span>
                 </a>
@@ -54,12 +115,12 @@
             <!--                      {% include 'partials/notification_count.html' %}-->
             <!--                  </span>-->
 
-         <div class="dropdown-menu notifications">
-            <div class="topnav-dropdown-header">
+         <div class="dropdown-menu notifications notification_view">
+            <div class="topnav-dropdown-header notification_view">
                <span class="notification-title">Notifications</span>
                <a href="javascript:void(0)" class="clear-noti"> Clear All </a>
             </div>
-            <div class="noti-content">
+            <div class="noti-content notification_view">
                <ul class="notification-list">
                   {% for notification1 in notification1 %}
                   <li class="notification-message">
@@ -97,13 +158,37 @@
       </li>
       <li class="nav-item dropdown has-arrow">
          <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
-            {% if user.first_name %}
-               <span class="user-img text-capitalize"><img class="rounded-circle" src="{{ user.profile.image.url }}" width="50" height="50" alt="{{ user.first_name }} {{ user.last_name }}">  {{ user.first_name }} </span>
-            {% else %}
-              <span class="user-img text-capitalize"><img class="rounded-circle" src="{{ user.profile.image.url }}" width="50" height="50" alt="{{ user.first_name }} {{ user.last_name }}">  {{ user.username }} </span>
-            {% endif %}
+<!--            {% if user.first_name %}-->
+<!--               <span class="user-img text-capitalize"><img class="rounded-circle" src="{{ user.profile.image.url }}" width="50" height="50" alt="{{ user.first_name }} {{ user.last_name }}">  {{ user.first_name }} </span>-->
+<!--            {% else %}-->
+<!--              <span class="user-img text-capitalize"><img class="rounded-circle" src="{{ user.profile.image.url }}" width="50" height="50" alt="{{ user.first_name }} {{ user.last_name }}">  {{ user.username }} </span>-->
+<!--            {% endif %}-->
+             <img class="rounded-circle" src="{{ user.profile.image.url }}" width="50" height="50" alt="{{ user.first_name }} {{ user.last_name }}">
+               <span id="user-name">
+                  {% if user.first_name %}
+                     {{ user.first_name }}
+                  {% else %}
+                     {{ user.username }}
+                  {% endif %}
+               </span>
+<!--             <style>-->
+<!--                /* Hide user name on mobile */-->
+<!--                @media (max-width: 767px) {-->
+<!--                    #user-name {-->
+<!--                        display: none;-->
+<!--                    }-->
+<!--                }-->
+
+<!--                /* Show user name on desktop */-->
+<!--                @media (min-width: 768px) {-->
+<!--                    #user-name {-->
+<!--                        display: inline-block;-->
+<!--                    }-->
+<!--                }-->
+<!--            </style>-->
+
          </a>
-         <div class="dropdown-menu">
+         <div class="dropdown-menu profile">
             <div class="user-header">
                <div class="avatar avatar-sm">
                   <img src="{{ user.profile.image.url }}" alt="User Image" class="avatar-img rounded-circle">
@@ -120,9 +205,9 @@
                   </div>
                {% endif %}
             </div>
-            <a class="dropdown-item text-capitalize" href="{% url 'user-profile' %}">My Profile</a>
-            <a class="dropdown-item text-capitalize" href="{% url 'firereport-changePassword' %}">Change Password</a>
-            <a class="dropdown-item text-capitalize" href="{% url 'user-logout' %}">Logout</a>
+            <a class="dropdown-item text-capitalize user-body" href="{% url 'user-profile' %}">My Profile</a>
+            <a class="dropdown-item text-capitalize user-body" href="{% url 'firereport-changePassword' %}">Change Password</a>
+            <a class="dropdown-item text-capitalize user-body" href="{% url 'user-logout' %}">Logout</a>
          </div>
       </li>
    </ul>

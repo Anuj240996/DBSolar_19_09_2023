@@ -56,8 +56,5 @@ urlpatterns = [
 
 ]
 
-# CRM integration (leads, pipeline, detail)
-urlpatterns += [
-    path('crm/', include('customer.crm.urls')),
-]
+# Note: CRM was moved to a separate 'leads' app. No additional URLs appended here.
 

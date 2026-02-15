@@ -1,9 +1,11 @@
+from django.contrib.auth.views import LoginView
 from django.shortcuts import render, redirect
 
 from django.contrib.auth import get_user, logout, login
 #from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import Group
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
+from django.urls import reverse_lazy
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 
@@ -13,12 +15,79 @@ from customer.decorators import allowed_users
 from customer.models import Customer
 from dashboard.models import staff_Notification
 from .models import User, Profile
-from .forms import CreateUserForm, UserUpdateForm, ProfileUpdateForm
+from .forms import CreateUserForm, UserUpdateForm, ProfileUpdateForm, UserLoginForm, PermissionForm
 from django.contrib import messages
+
 
 from .models import *
 
 # Create your views here.
+
+from django.contrib.auth.decorators import login_required
+from user.permissions import has_portal_access
+
+
+@login_required(login_url="user-login")
+def post_login_redirect(request):
+    """
+    Single landing route after authentication.
+    Sends the user to the first portal they are allowed to access.
+    """
+    u = request.user
+
+    # Superuser -> Admin dashboard
+    if getattr(u, "is_superuser", False):
+        return redirect("dashboard-index")
+
+    # Vendor user -> Vendor portal
+    if hasattr(u, "vendor_account") and has_portal_access(u, "vendor"):
+        return redirect("user:vendor-dashboard")
+
+    # Portal preference order (works for staff + non-staff users)
+    if has_portal_access(u, "staff"):
+        return redirect("dashboard-index1")
+    if has_portal_access(u, "admin"):
+        return redirect("dashboard-index")
+    if has_portal_access(u, "customer"):
+        return redirect("customer-view_all")
+
+    return redirect("user:no_access")
+
+
+@login_required(login_url="user-login")
+def logout_view(request):
+    """
+    Logout handler that supports GET (menu link) and POST.
+
+    Django 5+ defaults to POST-only for LogoutView; this project uses many
+    `<a href="/logout/">` links, so we provide a safe fallback here.
+    """
+    # Allow both GET and POST to avoid HTTP 405.
+    logout(request)
+    try:
+        messages.success(request, "Logged out successfully.")
+    except Exception:
+        pass
+    return redirect("user-login")
+
+
+@login_required(login_url="user-login")
+def no_access(request):
+    return render(request, "user/no_access.html")
+
+
+@login_required(login_url="user-login")
+def vendor_dashboard(request):
+    # Only vendor-linked users may access vendor portal
+    if not hasattr(request.user, "vendor_account"):
+        messages.error(request, "Vendor portal is only available for vendor accounts.")
+        return redirect("user:no_access")
+
+    if not has_portal_access(request.user, "vendor") and not request.user.is_superuser:
+        messages.error(request, "Access denied: Vendor dashboard not permitted.")
+        return redirect("user:no_access")
+
+    return render(request, "vendor/dashboard.html", {"vendor_account": request.user.vendor_account})
 
 
 # views.py
@@ -39,93 +108,11 @@ from .models import User, Profile
 from django.db.models import F
 
 
-# def emp_pdf(request):
-#     if request.method == 'POST':
-#         form = PDFGenerationForm(request.POST)
-#         if form.is_valid():
-#             response = HttpResponse(content_type='application/pdf')
-#             response['Content-Disposition'] = 'attachment; filename="generated_pdf.pdf"'
-#             # template = get_template('user/pdf_template.html')
-#             #
-#             #
-#             #
-#             # response = HttpResponse(content_type='application/pdf')
-#             # response['Content-Disposition'] = 'filename="generated_pdf.pdf"'
-#
-#             buffer = BytesIO()
-#             p = canvas.Canvas(buffer, pagesize=letter)
-#
-#             selected_user_fields = form.cleaned_data['user_fields']
-#             selected_profile_fields = form.cleaned_data['profile_fields']
-#
-#             users = User.objects.all()  # Fetch all User instances
-#
-#             y_position = 750  # Initial Y-coordinate for positioning text
-#
-#             for user in users:
-#                 user_profile = user.profile  # Retrieve the associated Profile instance
-#                 for user_field in selected_user_fields:
-#                     y_position -= 15  # Move down the Y-coordinate for each field
-#                     field_value = getattr(user, user_field, "")
-#                     p.drawString(100, y_position, f"User - {user_field}: {field_value}")
-#
-#                 for profile_field in selected_profile_fields:
-#                     y_position -= 15  # Move down the Y-coordinate for each field
-#                     field_value = getattr(user_profile, profile_field, "")
-#                     p.drawString(100, y_position, f"Profile - {profile_field}: {field_value}")
-#
-#             p.showPage()
-#             p.save()
-#
-#             pdf = buffer.getvalue()
-#             buffer.close()
-#             response.write(pdf)
-#             return response
-#     else:
-#         form = PDFGenerationForm()
-#
-#     return render(request, 'user/edit_pdf.html', {'form': form})
-
 
 from django.template.loader import get_template
 from django.http import HttpResponse
 from xhtml2pdf import pisa
 from io import BytesIO
-
-# def emp_pdf(request):
-#     if request.method == 'POST':
-#         form = PDFGenerationForm(request.POST)
-#         if form.is_valid():
-#             selected_user_fields = form.cleaned_data['user_fields']
-#             selected_profile_fields = form.cleaned_data['profile_fields']
-#
-#             users = User.objects.all()
-#
-#             context = {
-#                 'users': users,
-#                 'selected_user_fields': selected_user_fields,
-#                 'selected_profile_fields': selected_profile_fields,
-#             }
-#
-#             template = get_template('user/pdf_template.html')
-#             html = template.render(context)
-#
-#             response = HttpResponse(content_type='application/pdf')
-#             response['Content-Disposition'] = 'attachment; filename="generated_pdf.pdf"'
-#
-#             buffer = BytesIO()
-#             pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), buffer)
-#
-#             if not pdf.err:
-#                 response.write(buffer.getvalue())
-#                 buffer.close()
-#                 return response
-#
-#     else:
-#         form = PDFGenerationForm()
-#
-#     return render(request, 'user/edit_pdf.html', {'form': form})
-
 
 
 from django.template.loader import get_template
@@ -152,41 +139,6 @@ from xhtml2pdf import pisa
 from io import BytesIO
 from django.conf import settings
 
-# def emp_pdf(request):
-#     if request.method == 'POST':
-#         form = PDFGenerationForm(request.POST)
-#         if form.is_valid():
-#             selected_user_fields = form.cleaned_data['user_fields']
-#             selected_profile_fields = form.cleaned_data['profile_fields']
-#
-#             users = User.objects.all()  # Fetch all User instances
-#
-#             data = []  # Table data
-#
-#             for user in users:
-#                 user_profile = user.profile  # Retrieve the associated Profile instance
-#                 user_data = {
-#                     'Emp ID': user.id,
-#                     **{field: getattr(user, field, "") for field in selected_user_fields},
-#                     **{field: getattr(user_profile, field, "") for field in selected_profile_fields}
-#                 }
-#                 data.append(user_data)
-#
-#             template = get_template('user/pdf_template.html')
-#             context = {'data': data}
-#             html = template.render(context)
-#
-#             result = BytesIO()
-#             pdf = pisa.pisaDocument(BytesIO(html.encode("ISO-8859-1")), result, encoding="ISO-8859-1")
-#             if not pdf.err:
-#                 response = HttpResponse(result.getvalue(), content_type='application/pdf')
-#                 response['Content-Disposition'] = 'attachment; filename="generated_pdf.pdf"'
-#                 return response
-#     else:
-#         form = PDFGenerationForm()
-#
-#     return render(request, 'user/edit_pdf.html', {'form': form})
-
 
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -199,42 +151,6 @@ from django.http import HttpResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
 from io import BytesIO
-#
-# def emp_pdf(request):
-#     if request.method == 'POST':
-#         form = PDFGenerationForm(request.POST)
-#         if form.is_valid():
-#             selected_user_fields = form.cleaned_data['user_fields']
-#             selected_profile_fields = form.cleaned_data['profile_fields']
-#
-#             users = User.objects.all()  # Fetch all User instances
-#
-#             data = []
-#             for user in users:
-#                 user_profile = user.profile if hasattr(user, 'profile') else None
-#                 user_data = {
-#                     'User': user.username,
-#                     'user_fields': {field: getattr(user, field, "") for field in selected_user_fields},
-#                     'profile_fields': {field: getattr(user_profile, field, "") if user_profile else "" for field in
-#                                        selected_profile_fields}
-#                 }
-#                 data.append(user_data)
-#
-#             template = get_template('user/pdf_template.html')
-#             context = {'data': data, 'selected_user_fields': selected_user_fields, 'selected_profile_fields': selected_profile_fields}
-#             html = template.render(context)
-#
-#             result = BytesIO()
-#             pdf = pisa.pisaDocument(BytesIO(html.encode("ISO-8859-1")), result, encoding="ISO-8859-1")
-#             if not pdf.err:
-#                 response = HttpResponse(result.getvalue(), content_type='application/pdf')
-#                 response['Content-Disposition'] = 'attachment; filename="generated_pdf.pdf"'
-#                 return response
-#     else:
-#         form = PDFGenerationForm()
-#
-#     return render(request, 'user/edit_pdf.html', {'form': form})
-#
 
 from django.http import HttpResponse
 from io import BytesIO
@@ -243,212 +159,6 @@ from xhtml2pdf import pisa
 from django.shortcuts import render
 from .forms import PDFGenerationForm
 from .models import User
-
-# def emp_pdf(request):
-#     if request.method == 'POST':
-#         form = PDFGenerationForm(request.POST)
-#         if form.is_valid():
-#             # Include additional User fields in selected_user_fields
-#             selected_user_fields = form.cleaned_data['user_fields']
-#             selected_profile_fields = form.cleaned_data['profile_fields']
-#
-#             users = User.objects.all()  # Fetch all User instances
-#
-#             data = []
-#             for user in users:
-#                 user_profile = user.profile if hasattr(user, 'profile') else None
-#                 full_name = f"{user.first_name} {user.last_name}"
-#
-#                 # Define a dictionary to map database field names to display names
-#                 field_display_names = {
-#                     'first_name': 'First Name',
-#                     'last_name': 'Last Name',
-#                     'active': 'Active',
-#                     'superuser': 'Superuser',
-#                     'last_login': 'Last Login',
-#                     'email': 'Email',
-#                     'date_joined': 'Date Joined',
-#                     'is_staff': 'Is Staff',
-#                     # Add more mappings as needed
-#                 }
-#
-#                 # user_data = {
-#                 #     'User': user.username,
-#                 #     'full_name': full_name,
-#                 #     'user_fields': {field: getattr(user, field, "") for field in selected_user_fields if field != 'full_name'},
-#                 #     'profile_fields': {field: getattr(user_profile, field, "") if user_profile else "" for field in
-#                 #                        selected_profile_fields}
-#                 # }
-#
-#                 user_data = {
-#                     'User': user.username,
-#                     'full_name': full_name,
-#                     'user_fields': {field_display_names.get(field, field): getattr(user, field, "") for field in
-#                                     selected_user_fields if field != 'full_name'},
-#                     'profile_fields': {
-#                         field_display_names.get(field, field): getattr(user_profile, field, "") if user_profile else ""
-#                         for field in selected_profile_fields}
-#                 }
-#
-#                 data.append(user_data)
-#
-#
-#             template = get_template('user/pdf_template.html')
-#             context = {
-#                 'data': data,
-#                 'selected_user_fields': selected_user_fields,
-#                 'selected_profile_fields': selected_profile_fields,
-#                 'field_display_names': field_display_names,  # Pass the display names to the template
-#
-#             }
-#
-#
-#
-#             #context = {'data': data, 'selected_user_fields': selected_user_fields, 'selected_profile_fields': selected_profile_fields}
-#             html = template.render(context)
-#
-#             result = BytesIO()
-#             pdf = pisa.pisaDocument(BytesIO(html.encode("ISO-8859-1")), result, encoding="ISO-8859-1")
-#             if not pdf.err:
-#                 response = HttpResponse(result.getvalue(), content_type='application/pdf')
-#                 response['Content-Disposition'] = 'attachment; filename="generated_pdf.pdf"'
-#                 return response
-#     else:
-#         form = PDFGenerationForm()
-#
-#     return render(request, 'user/edit_pdf.html', {'form': form})
-
-
-#
-# def emp_pdf(request):
-#     if request.method == 'POST':
-#         form = PDFGenerationForm(request.POST)
-#         if form.is_valid():
-#             selected_user_fields = form.cleaned_data['user_fields']
-#             selected_profile_fields = form.cleaned_data['profile_fields']
-#
-#             users = User.objects.all()  # Fetch all User instances
-#
-#             # Define custom field names
-#             field_display_names = {
-#                 'first_name': 'First Name',
-#                 'last_name': 'Last Name',
-#                 'username': 'Username',
-#                 'is_active': 'Active',
-#                 'is_superuser': 'Superuser',
-#                 'last_login': 'Last Login',
-#                 'email': 'Email',
-#                 'date_joined': 'Date Joined',
-#                 'is_staff': 'Staff',
-#                 'id': 'Emp ID',
-#                 # Add more mappings as needed
-#             }
-#
-#             custom_user_fields = [field_display_names.get(field, field) for field in selected_user_fields]
-#             custom_profile_fields = [field_display_names.get(field, field) for field in selected_profile_fields]
-#
-#             data = []
-#             for user in users:
-#                 user_profile = user.profile if hasattr(user, 'profile') else None
-#                 full_name = f"{user.first_name} {user.last_name}"
-#                 user_data = {
-#                     'User': user.username,
-#                     'full_name': full_name,
-#                     'user_fields': {field: getattr(user, field, "") for field in selected_user_fields if field != 'full_name'},
-#                     'profile_fields': {field: getattr(user_profile, field, "") if user_profile else "" for field in selected_profile_fields}
-#                 }
-#                 data.append(user_data)
-#
-#             template = get_template('user/pdf_template.html')
-#             # context = {
-#             #     'data': data,
-#             #     'selected_user_fields': custom_user_fields,
-#             #     'selected_profile_fields': custom_profile_fields,
-#             # }
-#
-#             context = {
-#                 'data': data,
-#                 'selected_user_fields': selected_user_fields,
-#                 'selected_profile_fields': selected_profile_fields,
-#                 'custom_user_fields': custom_user_fields,
-#                 'custom_profile_fields': custom_profile_fields,
-#             }
-#
-#             html = template.render(context)
-#
-#             result = BytesIO()
-#             pdf = pisa.pisaDocument(BytesIO(html.encode("ISO-8859-1")), result, encoding="ISO-8859-1")
-#             if not pdf.err:
-#                 response = HttpResponse(result.getvalue(), content_type='application/pdf')
-#                 response['Content-Disposition'] = 'attachment; filename="generated_pdf.pdf"'
-#                 return response
-#     else:
-#         form = PDFGenerationForm()
-#
-#     return render(request, 'user/edit_pdf.html', {'form': form})
-
-
-# def emp_pdf(request):
-#     if request.method == 'POST':
-#         form = PDFGenerationForm(request.POST)
-#         if form.is_valid():
-#             selected_user_fields = form.cleaned_data['user_fields']
-#             selected_profile_fields = form.cleaned_data['profile_fields']
-#
-#             users = User.objects.all()  # Fetch all User instances
-#
-#
-#             # Define custom field names
-#             field_display_names = {
-#                 'first_name': 'First Name',
-#                 'last_name': 'Last Name',
-#                 'active': 'Active',
-#                 'superuser': 'Superuser',
-#                 'last_login': 'Last Login',
-#                 'email': 'Email',
-#                 'username': 'Username',
-#                 'date_joined': 'Date Joined',
-#                 'is_staff': 'Is Staff',
-#                 'id': 'Emp ID',
-#                 # Add more mappings as needed
-#             }
-#
-#             custom_user_fields = [field_display_names.get(field, field) for field in selected_user_fields]
-#             custom_profile_fields = [field_display_names.get(field, field) for field in selected_profile_fields]
-#
-#             data = []
-#             for user in users:
-#                 user_profile = user.profile if hasattr(user, 'profile') else None
-#                 full_name = f"{user.first_name} {user.last_name}"
-#                 user_data = {
-#                     'empid': user_profile.customer_id,
-#                     'full_name': full_name,
-#                     'user_fields': {field: getattr(user, field, "") for field in selected_user_fields if field != 'full_name'},
-#                     'profile_fields': {field: getattr(user_profile, field, "") if user_profile else "" for field in selected_profile_fields}
-#                 }
-#                 data.append(user_data)
-#
-#             template = get_template('user/pdf_template.html')
-#             context = {
-#                 'data': data,
-#                 'selected_user_fields': custom_user_fields,
-#                 'selected_profile_fields': custom_profile_fields,
-#                 'profile_fields': custom_profile_fields,  # Pass the profile_fields variable
-#             }
-#             html = template.render(context)
-#
-#             result = BytesIO()
-#             pdf = pisa.pisaDocument(BytesIO(html.encode("ISO-8859-1")), result, encoding="ISO-8859-1")
-#             if not pdf.err:
-#                 response = HttpResponse(result.getvalue(), content_type='application/pdf')
-#                 response['Content-Disposition'] = 'attachment; filename="generated_pdf.pdf"'
-#                 return response
-#     else:
-#         form = PDFGenerationForm()
-#
-#     return render(request, 'user/edit_pdf.html', {'form': form})
-#
-
 
 from django.http import HttpResponse
 from io import BytesIO
@@ -458,88 +168,6 @@ from django.shortcuts import render
 from .forms import PDFGenerationForm
 from .models import User
 from django.db.models import Q
-#
-# def emp_pdf(request):
-#     users = User.objects.all()
-#     if request.method == 'POST':
-#         form = PDFGenerationForm(request.POST)
-#         if form.is_valid():
-#             user_type_filter = request.POST.get('userType')
-#
-#             # Define the base queryset
-#             base_queryset = User.objects.all()
-#
-#             # Apply filters based on the selected user type
-#             if user_type_filter == 'superuser':
-#                 base_queryset = base_queryset.filter(Q(is_superuser=True) & Q(is_staff=True) & Q(is_active=True))
-#             elif user_type_filter == 'staff':
-#                 base_queryset = base_queryset.filter(Q(is_superuser=False) & Q(is_staff=True) & Q(is_active=True))
-#             elif user_type_filter == 'active':
-#                 base_queryset = base_queryset.filter(Q(is_superuser=False) & Q(is_staff=False) & Q(is_active=True))
-#
-#             selected_user_fields = form.cleaned_data['user_fields']
-#             selected_profile_fields = form.cleaned_data['profile_fields']
-#
-#             # Check if at least one field from either User or Profile is selected
-#             if not (selected_user_fields or selected_profile_fields):
-#                 return HttpResponse("Please select at least one field from User or Profile to generate the PDF.")
-#
-#             # Fetch the filtered users based on the selected user type
-#             users = base_queryset  # Correct the indentation here
-#
-#             # Define custom field names
-#             field_display_names = {
-#                 'first_name': 'First Name',
-#                 'last_name': 'Last Name',
-#                 'active': 'Active',
-#                 'superuser': 'Superuser',
-#                 'last_login': 'Last Login',
-#                 'email': 'Email',
-#                 'username': 'Username',
-#                 'date_joined': 'Date Joined',
-#                 'is_staff': 'Is Staff',
-#                 'id': 'Emp ID',
-#                 # Add more mappings as needed
-#             }
-#
-#             custom_user_fields = [field_display_names.get(field, field) for field in selected_user_fields]
-#             custom_profile_fields = [field_display_names.get(field, field) for field in selected_profile_fields]
-#
-#             data = []
-#             for user in users:
-#                 user_profile = user.profile if hasattr(user, 'profile') else None
-#                 full_name = f"{user.first_name} {user.last_name}"
-#                 user_data = {
-#                     'empid': user_profile.customer_id,
-#                     'full_name': full_name,
-#                     'user_fields': {field: getattr(user, field, "") for field in selected_user_fields if field != 'full_name'},
-#                     'profile_fields': {field: getattr(user_profile, field, "") if user_profile else "" for field in selected_profile_fields}
-#                 }
-#                 data.append(user_data)
-#
-#             template = get_template('user/pdf_template.html')
-#             context = {
-#                 'data': data,
-#                 'selected_user_fields': custom_user_fields,
-#                 'selected_profile_fields': custom_profile_fields,
-#                 'profile_fields': custom_profile_fields,  # Pass the profile_fields variable
-#                 'base_queryset': base_queryset,
-#             }
-#             html = template.render(context)
-#
-#             result = BytesIO()
-#             pdf = pisa.pisaDocument(BytesIO(html.encode("ISO-8859-1")), result, encoding="ISO-8859-1")
-#             if not pdf.err:
-#                 response = HttpResponse(result.getvalue(), content_type='application/pdf')
-#                 response['Content-Disposition'] = 'attachment; filename="generated_pdf.pdf"'
-#                 return response
-#     else:
-#         form = PDFGenerationForm()
-#
-#     return render(request, 'user/edit_pdf.html', {'form': form})
-
-
-
 
 from django.http import HttpResponse
 from django.template.loader import get_template
@@ -548,72 +176,6 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from io import BytesIO
 from django.db.models import Q
-
-
-# def generate_pdf(request, user_fields, profile_fields, data):
-#     buffer = BytesIO()
-#     pdf = SimpleDocTemplate(buffer, pagesize=letter)
-#
-#     # Create the table and apply column widths
-#     table_data = [user_fields + profile_fields]  # Header row
-#
-#     for data_row in data:
-#         table_data.append(data_row)
-#
-#     table = Table(table_data, colWidths=[100] * len(user_fields + profile_fields))  # Adjust column widths
-#
-#     # Apply styles to the table, e.g., borders
-#     style = TableStyle([('INNERGRID', (0, 0), (-1, -1), 0.25, (0, 0, 0)),
-#                         ('BOX', (0, 0), (-1, -1), 0.25, (0, 0, 0))])
-#     table.setStyle(style)
-#
-#     elements = [table]
-#
-#     pdf.build(elements)
-#
-#     response = HttpResponse(content_type='application/pdf')
-#     response['Content-Disposition'] = 'attachment; filename="generated_pdf.pdf"'
-#     response.write(buffer.getvalue())
-#     buffer.close()
-#
-#     return response
-
-# from reportlab.lib.pagesizes import letter
-# from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
-# from django.http import HttpResponse
-# from io import BytesIO
-#
-# def generate_pdf(request, user_fields, profile_fields, data):
-#     buffer = BytesIO()
-#     pdf = SimpleDocTemplate(buffer, pagesize=letter)
-#
-#     # Create the table and apply column widths
-#     table_data = [user_fields + profile_fields]  # Header row
-#
-#     for user_data in data:
-#         # Extract cell values from the user_data dictionary
-#         row = []
-#         for field in user_fields + profile_fields:
-#             row.append(user_data.get(field, ""))  # Use get() to handle missing fields gracefully
-#         table_data.append(row)
-#
-#     table = Table(table_data, colWidths=[100] * len(user_fields + profile_fields))  # Adjust column widths
-#
-#     # Apply styles to the table, e.g., borders
-#     style = TableStyle([('INNERGRID', (0, 0), (-1, -1), 0.25, (0, 0, 0)),
-#                         ('BOX', (0, 0), (-1, -1), 0.25, (0, 0, 0))])
-#     table.setStyle(style)
-#
-#     elements = [table]
-#
-#     pdf.build(elements)
-#
-#     response = HttpResponse(content_type='application/pdf')
-#     response['Content-Disposition'] = 'attachment; filename="generated_pdf.pdf"'
-#     response.write(buffer.getvalue())
-#     buffer.close()
-#
-#     return response
 
 
 from reportlab.lib.pagesizes import letter
@@ -640,90 +202,12 @@ from reportlab.lib.pagesizes import letter
 from django.db.models import Q
 from .models import User  # Import your User model here
 
-# def generate_pdf(request, user_fields, profile_fields, data):
-#     buffer = BytesIO()
-#     pdf = SimpleDocTemplate(buffer, pagesize=letter)
-#
-#     # Create the table and apply column widths
-#     table_data = [['Sr No'] + ['Emp ID'] + user_fields + profile_fields]  # Add 'ID' to the header row
-#
-#     for index, user_data in enumerate(data, start=1):
-#         row = [index, user_data['user_fields'].get('ID')]  # Access 'customer_id' from profile_fields
-#         #print(f'Row {index} - ID: {row[1]}')
-#         for field in user_fields:
-#             if field != 'ID':
-#                 row.append(user_data['user_fields'].get(field, ""))
-#
-#         for field in profile_fields:
-#             if field != 'customer_id':
-#                 row.append(user_data['profile_fields'].get(field, ""))
-#
-#         table_data.append(row)
-#
-#     table = Table(table_data, colWidths=[50, 50, 100] + [100] * (len(user_fields + profile_fields)))  # Adjust column widths
-#
-#
-#
-#     # col_widths = [50, 50, 100] + [
-#     #     max(50, min(max_col_widths[col] * 10, 200)) if col not in ['username', 'workphone'] else 50 for col in
-#     #     user_fields + profile_fields]
-#     #
-#     # table = Table(table_data, colWidths=col_widths)
-#
-#
-#
-#     # Apply styles to the table, e.g., borders
-#     style = TableStyle([('INNERGRID', (0, 0), (-1, -1), 0.25, (0, 0, 0)),
-#                         ('BOX', (0, 0), (-1, -1), 0.25, (0, 0, 0))])
-#     table.setStyle(style)
-#
-#     elements = [table]
-#
-#     pdf.build(elements)
-#
-#     response = HttpResponse(content_type='application/pdf')
-#     response['Content-Disposition'] = 'attachment; filename="generated_pdf.pdf"'
-#     response.write(buffer.getvalue())
-#     buffer.close()
-#
-#     return response
 
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from django.http import HttpResponse
 from io import BytesIO
 
-# def generate_pdf(request, user_fields, profile_fields, data):
-#     buffer = BytesIO()
-#     #pdf = SimpleDocTemplate(buffer, pagesize=letter)
-#     pdf = SimpleDocTemplate(buffer, pagesize=landscape(letter))
-#     # Create the table and apply column widths
-#     table_data = [['Sr No', 'Emp ID'] + user_fields + profile_fields]  # Add 'ID' to the header row
-#
-#     for index, user_data in enumerate(data, start=1):
-#         row = [index, user_data['user_fields'].get('ID')]  # Access 'customer_id' from profile_fields
-#
-#         row.extend([user_data['user_fields'].get(field, "") for field in user_fields if field != 'ID'])
-#         row.extend([user_data['profile_fields'].get(field, "") for field in profile_fields if field != 'customer_id'])
-#         table_data.append(row)
-#
-#     table = Table(table_data)
-#
-#     # Apply styles to the table, e.g., borders
-#     style = TableStyle([('INNERGRID', (0, 0), (-1, -1), 0.25, (0, 0, 0)),
-#                         ('BOX', (0, 0), (-1, -1), 0.25, (0, 0, 0))])
-#     table.setStyle(style)
-#
-#     elements = [table]
-#
-#     pdf.build(elements)
-#
-#     response = HttpResponse(content_type='application/pdf')
-#     response['Content-Disposition'] = 'attachment; filename="generated_pdf.pdf"'
-#     response.write(buffer.getvalue())
-#     buffer.close()
-#
-#     return response
 
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, PageTemplate, Frame, Image
@@ -784,75 +268,6 @@ from django.http import HttpResponse
 from io import BytesIO
 from reportlab.platypus import Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
-
-# ======================================================================================================
-# def generate_pdf(request, user_fields, profile_fields, data, logo_path, top_margin_height=0, user_type_filter=""):
-#     buffer = BytesIO()
-#     pdf = SimpleDocTemplate(buffer, pagesize=letter, topMargin=top_margin_height * inch)
-#
-#     elements = []
-#
-#     # Add the company logo at the top of the first page only
-#     logo = Image(logo_path, width=6.5 * inch, height=1.0 * inch)
-#     logo.hAlign = 'CENTER'
-#     elements.append(logo)
-#
-#     # Create table data for all user data
-#     table_data = [['Sr No', 'Emp ID'] + user_fields + profile_fields]
-#
-#     for index, user_data in enumerate(data, start=1):
-#         row = [index, user_data['user_fields'].get('ID')]
-#
-#         row.extend([user_data['user_fields'].get(field, "") for field in user_fields if field != 'ID'])
-#         row.extend([user_data['profile_fields'].get(field, "") for field in profile_fields if field != 'customer_id'])
-#         table_data.append(row)
-#
-#     table = Table(table_data)
-#     style = TableStyle([('INNERGRID', (0, 0), (-1, -1), 0.25, colors.black),
-#                         ('BOX', (0, 0), (-1, -1), 0.25, colors.black),
-#                         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Make the first row bold
-#                         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),  # Center-align the first row
-#                         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Add a background color to the first row
-#                         ('ALIGN', (0, 1), (1, -1), 'CENTER'),  # Center-align the Sr No and Emp ID columns
-#                         ])
-#     table.setStyle(style)
-#
-#     # Create a custom style for the caption
-#     caption_style = ParagraphStyle(
-#         name='CaptionStyle',
-#         fontSize=14,  # Adjust the font size as needed
-#         fontName='Helvetica-Bold',  # Use a bold font
-#         spaceAfter=12,  # Add space after the caption
-#         alignment =1,
-#     )
-#
-#     # Determine the caption text based on the selected_option
-#     if user_type_filter == "all":
-#         caption_text = "List Type : All Employee List"
-#     elif user_type_filter == "superuser":
-#         caption_text = "List Type : Admin List"
-#     elif user_type_filter == "staff":
-#         caption_text = "List Type : Staff List"
-#     elif user_type_filter == "active":
-#         caption_text = "List Type : Consumer List"
-#     else:
-#         caption_text = "Unknown List"  # Add a default caption for unknown options
-#
-#     caption = Paragraph(caption_text, caption_style)
-#
-#     elements.append(Spacer(1, 0.25 * inch))  # Add space between logo and table
-#     elements.append(caption)
-#     elements.append(table)
-#
-#     pdf.build(elements)
-#
-#     response = HttpResponse(content_type='application/pdf')
-#     response['Content-Disposition'] = 'attachment; filename="generated_pdf.pdf"'
-#     response.write(buffer.getvalue())
-#     buffer.close()
-#
-#     return response
-#=====================================================================
 
 
 from reportlab.lib.pagesizes import letter
@@ -960,83 +375,6 @@ def generate_pdf(request, user_fields, profile_fields, data, logo_path, top_marg
     return response
 
 
-#
-# def emp_pdf(request):
-#     if request.method == 'POST':
-#         form = PDFGenerationForm(request.POST)
-#         if form.is_valid():
-#             user_type_filter = request.POST.get('userType')
-#
-#             # Define the base queryset
-#             base_queryset = User.objects.all()
-#
-#             # Apply filters based on the selected user type
-#             if user_type_filter == 'superuser':
-#                 base_queryset = base_queryset.filter(Q(is_superuser=True) & Q(is_staff=True) & Q(is_active=True))
-#             elif user_type_filter == 'staff':
-#                 base_queryset = base_queryset.filter(Q(is_superuser=False) & Q(is_staff=True) & Q(is_active=True))
-#             elif user_type_filter == 'active':
-#                 base_queryset = base_queryset.filter(Q(is_superuser=False) & Q(is_staff=False) & Q(is_active=True))
-#
-#             selected_user_fields = form.cleaned_data['user_fields']
-#             selected_profile_fields = form.cleaned_data['profile_fields']
-#
-#             # Check if at least one field from either User or Profile is selected
-#             if not (selected_user_fields or selected_profile_fields):
-#                 return HttpResponse("Please select at least one field from User or Profile to generate the PDF.")
-#
-#             # Fetch the filtered users based on the selected user type
-#             users = base_queryset  # Correct the indentation here
-#
-#             # Define custom field names
-#             field_display_names = {
-#                 'first_name': 'First Name',
-#                 'last_name': 'Last Name',
-#                 'active': 'Active',
-#                 'superuser': 'Superuser',
-#                 'last_login': 'Last Login',
-#                 'email': 'Email',
-#                 'username': 'Username',
-#                 'date_joined': 'Date Joined',
-#                 'is_staff': 'Is Staff',
-#                 'id': 'ID',
-#                 # Add more mappings as needed
-#             }
-#
-#
-#             custom_user_fields = [field_display_names.get(field, field) for field in selected_user_fields]
-#             custom_profile_fields = [field_display_names.get(field, field) for field in selected_profile_fields]
-#
-#             data = []
-#             for user in users:
-#                 user_profile = user.profile if hasattr(user, 'profile') else None
-#                 full_name = f"{user.first_name} {user.last_name}"
-#                 user_data = {
-#                     'user_fields': {
-#                         field_display_names.get(field, field):
-#
-#                             getattr(user, field, "") if field not in ['full_name', 'id'] else
-#                             user.id if field == 'id' else
-#                             full_name if field == 'full_name' else ""
-#
-#                         for field in selected_user_fields
-#                     },
-#                     'profile_fields': {
-#                         field_display_names.get(field, field):
-#                             getattr(user_profile, field, "") if user_profile else ""
-#                         for field in selected_profile_fields
-#                     }
-#                 }
-#                 data.append(user_data)
-#
-#             # Call the PDF generation function with the data
-#             return generate_pdf(request, custom_user_fields, custom_profile_fields, data)
-#     else:
-#         form = PDFGenerationForm()
-#
-#     return render(request, 'user/edit_pdf.html', {'form': form})
-
-
 @login_required(login_url='user-login')
 # @allowed_users(allowed_roles=['Admin'])
 def emp_pdf(request):
@@ -1050,14 +388,17 @@ def emp_pdf(request):
 
             # Apply filters based on the selected user type
             if user_type_filter == 'superuser':
-                base_queryset = base_queryset.filter(Q(is_superuser=True) & Q(is_staff=True) & Q(is_active=True))
+                base_queryset = base_queryset.filter(Q(is_superuser=True) & Q(is_staff=True) & Q(is_active=True) & Q(groups=2))
             elif user_type_filter == 'staff':
-                base_queryset = base_queryset.filter(Q(is_superuser=False) & Q(is_staff=True) & Q(is_active=True))
+                base_queryset = base_queryset.filter(Q(is_superuser=False) & Q(is_staff=True) & Q(is_active=True) & Q(groups=2))
             elif user_type_filter == 'active':
-                base_queryset = base_queryset.filter(Q(is_superuser=False) & Q(is_staff=False) & Q(is_active=True))
+                base_queryset = base_queryset.filter(Q(is_superuser=False) & Q(is_staff=False) & Q(is_active=True) & Q(groups=2))
             elif user_type_filter == 'all':
                # base_queryset = base_queryset.filter((Q(is_superuser=True) & Q(is_staff=True) & Q(is_active=True))&(Q(is_superuser=False) & Q(is_staff=True) & Q(is_active=True)))
-               base_queryset = base_queryset.filter(Q(Q(is_superuser=True) & Q(is_active=True)) | Q(Q(is_staff=True) & Q(is_active=True)))
+               base_queryset = base_queryset.filter(
+                                                        (Q(is_superuser=True) & Q(is_active=True) & Q(groups=2)) |
+                                                        (Q(is_staff=True) & Q(is_active=True) & Q(groups=2))
+                                                    )
 
             selected_user_fields = form.cleaned_data['user_fields']
             selected_profile_fields = form.cleaned_data['profile_fields']
@@ -1112,7 +453,7 @@ def emp_pdf(request):
                     'profile_fields': profile_fields_data,
                 }
                 data.append(user_data)
-            logo_path = "media/static/images/dblogo2001.png"  # Replace with the actual path to your logo image
+            logo_path = "static/images/dblogo2001.png"  # Replace with the actual path to your logo image
             top_margin_height = 0.25  # Adjust this value as needed
 
             # Call the PDF generation function with the data
@@ -1123,172 +464,161 @@ def emp_pdf(request):
     return render(request, 'user/edit_pdf.html', {'form': form})
 
 
-
-# def emp_pdf(request):
-#     if request.method == 'POST':
-#         form = PDFGenerationForm(request.POST)
-#         if form.is_valid():
-#             user_type_filter = request.POST.get('userType')
-#
-#             # Define the base queryset
-#             base_queryset = User.objects.all()
-#
-#             # Apply filters based on the selected user type
-#             if user_type_filter == 'superuser':
-#                 base_queryset = base_queryset.filter(Q(is_superuser=True) & Q(is_staff=True) & Q(is_active=True))
-#             elif user_type_filter == 'staff':
-#                 base_queryset = base_queryset.filter(Q(is_superuser=False) & Q(is_staff=True) & Q(is_active=True))
-#             elif user_type_filter == 'active':
-#                 base_queryset = base_queryset.filter(Q(is_superuser=False) & Q(is_staff=False) & Q(is_active=True))
-#
-#             selected_user_fields = form.cleaned_data['user_fields']
-#             selected_profile_fields = form.cleaned_data['profile_fields']
-#
-#             # Check if at least one field from either User or Profile is selected
-#             if not (selected_user_fields or selected_profile_fields):
-#                 return HttpResponse("Please select at least one field from User or Profile to generate the PDF.")
-#
-#             # Fetch the filtered users based on the selected user type
-#             users = base_queryset
-#
-#             # Define custom field names
-#             field_display_names = {
-#                 'first_name': 'First Name',
-#                 'last_name': 'Last Name',
-#                 'active': 'Active',
-#                 'superuser': 'Superuser',
-#                 'last_login': 'Last Login',
-#                 'email': 'Email',
-#                 'username': 'Username',
-#                 'date_joined': 'Date Joined',
-#                 'is_staff': 'Is Staff',
-#                 'id': 'ID',  # Map 'id' field to 'ID'
-#                 # Add more mappings as needed
-#             }
-#
-#             custom_user_fields = []
-#             custom_profile_fields = [field_display_names.get(field, field) for field in selected_profile_fields]
-#
-#             for field in selected_user_fields:
-#                 if field in field_display_names:
-#                     custom_user_fields.append(field_display_names[field])
-#
-#             data = []
-#             for user in users:
-#                 user_profile = user.profile if hasattr(user, 'profile') else None
-#                 full_name = f"{user.first_name} {user.last_name}"
-#                 user_fields_data = {
-#                     'ID': user.id,
-#                     'Full Name': full_name if 'full_name' in selected_user_fields else "",
-#                 }
-#                 user_fields_data.update({field_display_names.get(field, field): getattr(user, field, "") for field in selected_user_fields if field != 'id'})
-#                 profile_fields_data = {field_display_names.get(field, field): getattr(user_profile, field, "") for field in selected_profile_fields} if user_profile else {}
-#                 user_data = {
-#                     'user_fields': user_fields_data,
-#                     'profile_fields': profile_fields_data,
-#                 }
-#                 data.append(user_data)
-#
-#             # Call the PDF generation function with the data
-#             return generate_pdf(request, custom_user_fields, custom_profile_fields, data)
-#     else:
-#         form = PDFGenerationForm()
-#
-#     return render(request, 'user/edit_pdf.html', {'form': form})
-
+from django.contrib.auth.models import User, Group
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth import authenticate, login
 
 
 def register(request):
-    count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
-    notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
     if request.method == 'POST':
-        form = CreateUserForm(request.POST)
-        #Profile.objects.create(user=form)
+        # Fetch data submitted in the form
+        username = request.POST.get('username')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        password = request.POST.get('password1')
+        password1 = request.POST.get('password2')
 
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.is_staff = False
-            user.is_active = True
-            user.save()
-            username = form.cleaned_data.get('username')
-            messages.success(request, f'Account has been created for {username}  continue to Login')
-            group = Group.objects.get(name='Customers')
-            user.groups.add(group)
+        # Perform basic validation, you may need to do more checks as needed
+
+        if password != password1:
+            messages.error(request, 'Passwords do not match')
             return redirect('user-login')
-    else:
-        form = CreateUserForm()
-        #Profile.objects.create(user=form)
-    context = {
-        'form': form,
-        'profile': profile,
-        'count1': count1,
-        'notification1': notification1,
-    }
-    return render(request, 'user/register.html', context)
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Username is already Exist')
+            return redirect('user-login')
+
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Email is already registered')
+            return redirect('user-login')
+
+        # Create the user
+        user = User.objects.create_user(username=username, first_name=first_name, last_name=last_name, email=email,
+                                        password=password)
+        user.save()
+
+        # Add the user to the 'Customers' group
+        group = Group.objects.get(name='Customers')
+        user.groups.add(group)
+
+        # Log the user in after registration
+        authenticated_user = authenticate(username=username, password=password)
+        login(request, authenticated_user)
+
+        # Redirect to a success page or any other page after successful registration
+        messages.success(request, 'You have been successfully registered!')
+        return redirect('user-login')  # Change 'success-page' to the appropriate URL
+
+    return render(request, 'user/login.html')
+
 
 @login_required(login_url='user-login')
+
+@login_required(login_url='user-login')
+@allowed_users(allowed_roles=['Admin'])
+@permission_required('auth.change_user', raise_exception=True)
 def add(request):
-    error=""
+    error = ""
     count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
     notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
+
     if request.method == 'POST':
         form = CreateUserForm(request.POST)
-    #    Profile.objects.create(user=form)
 
         if form.is_valid():
-
             user = form.save(commit=False)
             user.set_password(request.POST.get('password1'))
 
             user.is_staff = True
             user.is_active = True
             user.save()
-           # print(user.first_name)
-            # Add the user to the Customers group
+
+            # Add the user to the 'Customers' group
             group = Group.objects.get(name='Customers')
             user.groups.add(group)
+
+            if form.cleaned_data.get('is_superuser'):
+                # If 'is_superuser' is checked, also add to the 'Admin' group
+                admin_group = Group.objects.get(name='Admin')
+                user.groups.add(admin_group)
+
             username = form.cleaned_data.get('username')
-            messages.success(request, f'{username}  Account Created Successfully!!')
-            #print(user.password)
+            messages.success(request, f'{username} Account Created Successfully!!')
             return redirect('user-profile-update', user.id)
     else:
         form = CreateUserForm()
-#        Profile.objects.create(user=form)
+
     context = {
         'form': form,
-        'profile': profile,
         'count1': count1,
         'notification1': notification1,
     }
     return render(request, 'user/add.html', context)
 
 
-# def profile(request,pk):
-#     user = User.objects.get(id=pk)
-#     item = Profile.objects.get(id=pk)
-#     return render(request, 'user/profile.html', locals())
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.models import User, Permission
+from django.shortcuts import render, redirect
+from .forms import PermissionForm
 
-# def profile(request):
-#     error = ""
-#     count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
-#     notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
-#     user = request.user
-#     employee = Profile.objects.get(customer=user)
-#     customer = Customer.objects.get(new_customer=user)
-#     if request.method == "POST":
-#       o = request.POST['oldpassword']
-#       n = request.POST['newpassword']
-#     try:
-#         u = User.objects.get(id=request.user.id)
-#         if user.check_password(o):
-#             u.set_password(n)
-#             u.save()
-#             error = "no"
-#         else:
-#             error = 'not'
-#     except:
-#         error = "yes"
-#     return render(request, 'user/profile.html', locals())
+from django.contrib.auth.models import User, Permission
+from django.http import JsonResponse
+from django.shortcuts import render, redirect
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.forms import ValidationError
+import json
+
+
+@login_required(login_url='user-login')
+@allowed_users(allowed_roles=['Admin'])
+@csrf_exempt  # Disable CSRF for API requests
+def permission_form(request):
+    if request.method == 'POST':
+        # Check if the request is JSON (API request)
+        if request.content_type == 'application/json':
+            try:
+                # Parse JSON data
+                data = json.loads(request.body)
+                user_id = data.get('user_id')
+                permissions = data.get('permissions', [])
+
+                if not user_id or not permissions:
+                    return JsonResponse({'success': False, 'message': 'Fail'}, status=400)
+
+                # Fetch user and permissions
+                user = User.objects.get(pk=user_id)
+                permission_objs = Permission.objects.filter(id__in=permissions)
+
+                # Update user permissions
+                user.user_permissions.set(permission_objs)
+                return JsonResponse({'success': True, 'message': 'Permissions updated successfully'})
+
+            except User.DoesNotExist:
+                return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
+            except Exception as e:
+                return JsonResponse({'success': False, 'message': f'An error occurred: {str(e)}'}, status=500)
+
+        # If the request is not JSON, handle it as a regular form submission
+        else:
+            form = PermissionForm(request.POST)
+            if form.is_valid():
+                user_id = form.cleaned_data['user']
+                permissions = form.cleaned_data['permissions']
+                user = User.objects.get(pk=user_id.id)
+                user.user_permissions.set(permissions)
+                return redirect('user-permission_form')
+
+    else:
+        # Handle GET request for standard form rendering
+        user_id = request.GET.get('user_id')
+        initial_user = User.objects.get(pk=user_id) if user_id else None
+        form = PermissionForm(initial={'user': initial_user}, initial_user=initial_user)
+
+    return render(request, 'user/permission_form.html', {'form': form})
+
 
 def profile(request):
     error = ""
@@ -1296,7 +626,6 @@ def profile(request):
     notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
     user = request.user
     employee = Profile.objects.get(customer=user)
-
     # Check if the current user is a customer and retrieve their associated object
     try:
         customer = Customer.objects.get(new_customer=user)
@@ -1380,6 +709,9 @@ def edit_profile(request):
              customer.phone = ph1
             #employee.bg = bg
             if add1:
+
+
+
              customer.Address = add1
             if city1:
              customer.City = city1
@@ -1391,63 +723,14 @@ def edit_profile(request):
         try:
             employee.save()
             user.save()
-            #customer.save()
-
-            # print(employee.image, user.first_name, user.last_name, user.email,
-            #       user.password, user.date_joined, employee.DOB, employee.department, employee.phone,
-            #       employee.designation)
-            # User.objects.create_user(first_name=fn,last_name=ln,username=un,password=pwd,id=ec,email=em,date_joined=jod)
-            # Profile.objects.create(address=add,DOB=dob,department=dept,image=img,phone=ph)
             error="no"
         except:
             error="yes"
     return render(request, 'user/edit_profile.html', locals())
 
 
-#     fn = request.POST['firstname']
-    #     ln = request.POST['lastname']
-    #
-    #
-    #     em = request.POST['email']
-    #     pwd = request.POST['pwd']
-    #     add = request.POST['address']
-    #     dob = request.POST['DOB']
-    #     jod = request.POST['jod']
-    #     dept = request.POST['dept']
-    #     image = request.FILES.get('image')
-    #     ph = request.POST['ph']
-    #     desig = request.POST['desig']
-    #
-    #     user.first_name = fn
-    #     user.last_name = ln
-    #     user.email = em
-    #     user.password = pwd
-    #     employee.department = dept
-    #     employee.phone = ph
-    #     employee.designation = desig
-    #     if jod:
-    #         user.date_joined = jod
-    #
-    #     if dob:
-    #         employee.DOB = dob
-    #     if image:
-    #         employee.image = image
-    #
-    #     try:
-    #         employee.save()
-    #         user.save()
-    #         print(employee.image, user.first_name, user.last_name, user.email,
-    #               user.password, user.date_joined, employee.DOB, employee.department, employee.phone,
-    #               employee.designation)
-    #         # User.objects.create_user(first_name=fn,last_name=ln,username=un,password=pwd,id=ec,email=em,date_joined=jod)
-    #         # Profile.objects.create(address=add,DOB=dob,department=dept,image=img,phone=ph)
-    #         error="no"
-    #     except:
-    #         error="yes"
-    # return render(request, 'user/profile.html', locals())
-
-
-
+@login_required(login_url='user-login')
+@allowed_users(allowed_roles=['Admin'])
 def profile_update(request,pk):
     error = ""
     count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
@@ -1456,9 +739,9 @@ def profile_update(request,pk):
     designations = Profile._meta.get_field('designation').choices
     bgs = Profile._meta.get_field('bg').choices
     user1 = User.objects.get(id=pk)
-    print(user1)
+    # print(user1)
     employee = Profile.objects.get(customer_id=user1)
-    print(user1)
+    # print(user1)
     if request.method == "POST":
         fn = request.POST['firstname']
         ln = request.POST['lastname']
@@ -1526,25 +809,18 @@ def profile_update(request,pk):
         try:
             user = get_user(request)
             employee.last_updated_by = user.id
-            print(user)
+            # print(user)
             employee.save()
             user1.save()
-            print(employee.image, user1.first_name, user1.last_name, user1.email,
-                  user1.password, user1.date_joined, employee.DOB, employee.department, employee.phone,
-                  employee.designation)
             logout(request)
             login(request, user)
-
-
-
-            # User.objects.create_user(first_name=fn,last_name=ln,username=un,password=pwd,id=ec,email=em,date_joined=jod)
-            # Profile.objects.create(address=add,DOB=dob,department=dept,image=img,phone=ph)
             error="no"
         except:
             error="yes"
     return render(request, 'user/profile_update.html', locals())
 
-
+@login_required(login_url='user-login')
+@allowed_users(allowed_roles=['Admin'])
 def profile_updatepage(request,pk):
     count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
     notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
@@ -1552,34 +828,4 @@ def profile_updatepage(request,pk):
     employee = Profile.objects.get(customer_id=pk)
     return render(request, 'user/profile_updatepage.html', locals())
 
-
-
-# def profile_update(request,pk):
-#     error=" "
-#     item1 = User.objects.get(id=pk)
-#     item = Profile.objects.get(id=pk)
-#
-#
-#     if request.method == 'POST':
-#
-#         u_form = UserUpdateForm(request.POST, instance=item1)
-#         p_form = ProfileUpdateForm(
-#             request.POST, request.FILES, instance=item)
-#
-#         if u_form.is_valid() and p_form.is_valid():
-#             u_form.save()
-#             p_form.save()
-#             return redirect('user-profile', item.id)
-#     else:
-#         u_form = UserUpdateForm(instance=item1)
-#         p_form = ProfileUpdateForm(instance=item)
-#
-#     context = {
-#
-#         'u_form': u_form,
-#         'p_form': p_form,
-#     }
-#     return render(request, 'user/profile_update.html', context)
-
-
-
+from django.contrib.auth import views as auth_views

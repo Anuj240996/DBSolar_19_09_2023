@@ -14,7 +14,7 @@ from django.shortcuts import redirect
 from .models import MSEB
 
 from datetime import datetime, timedelta, date
-import datetime
+# import datetime
 from datetime import datetime
 from django.db.models import Q
 
@@ -22,6 +22,13 @@ from django.db.models import Q
 from django.shortcuts import render
 from django.http import JsonResponse
 from .models import Customer
+# Import Quotation model to mark converted status when creating customer from quotation
+from quotation.models import Quotation
+# Import Lead model to update lead conversion status when creating customer from quotation
+try:
+    from leads.models import Lead
+except Exception:
+    Lead = None
 #from urllib.parse import quote as urlquote
 from django.shortcuts import render, HttpResponse
 
@@ -63,18 +70,607 @@ def index(request):
     count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
     notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
     return render(request, 'customer/index.html', locals())
+#
+# @login_required(login_url='user-login')
+# def Cust_emp(request):
+#     Cust_id = 1001 if Customer.objects.count() == 0 else Customer.objects.aggregate(max=Max('Cust_id'))["max"] + 1
+#     Cust_type = 'Residential'
+#     count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
+#     notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
+#     engineers = User.objects.filter(profile__department__isnull=False).filter(profile__department='Engineers').filter(is_staff='1').filter(is_active='1')
+#     cities = Customer.objects.values_list('City', flat=True).distinct().order_by('City')
+#
+#     if request.method == 'POST':
+#         # Create a new user first
+#         form = UserCreationForm(request.POST)
+#         if form.is_valid():
+#             user = form.save(commit=False)
+#             user.email = request.POST['email']  # Add email to user object
+#             user.first_name = request.POST['first_name']
+#             user.last_name = request.POST['last_name']
+#             user.save()
+#             # Add the user to the 'Customers' group
+#             group = Group.objects.get(name='Customers')
+#             user.groups.add(group)
+#
+#             # Retrieve phase value from POST data
+#             phase = int(request.POST.get('phase', 0))  # Default to 0 if not provided
+#             Comp_name = request.POST['first_name'] + " " + request.POST['last_name']
+#             first_name= request.POST['first_name']
+#             middle_name= request.POST['middle_name']
+#             last_name= request.POST['last_name']
+#             Address= request.POST['Address']
+#             Plant_Capacity=int(request.POST['Plant_Capacity'])
+#             Ups_Soft= request.POST['Ups_Soft']
+#             email= request.POST['email']
+#             phone=int(request.POST['phone'])
+#             solar_comp= request.POST['solar_comp']
+#             UPSC= request.POST['UPSC']
+#             state= request.POST['state']
+#             Pincode=int(request.POST['Pincode'])
+#             po_date = (request.POST['po_date'])
+#             po_order = request.POST['po_order']
+#             qunt_solar = request.POST['qunt_solar']
+#             qunt_inv = request.POST['qunt_inv']
+#             Teamid = request.POST['Engineer_Assigned']
+#             city_name = request.POST.get('city_name')
+#             new_city_name = request.POST.get('new_city_name')
+#             advance_paid = request.POST.get('advance_paid')  # Will be 'paid' or 'not_paid'
+#
+#             Emp_id = request.user
+#             sol_warranty = request.POST['sol_warranty']
+#             inv_warranty = request.POST['inv_warranty']
+#             com_warranty = request.POST['com_warranty']
+#             project_type = request.POST['project_type']
+#
+#             # Initialize fields
+#             Consumer = None
+#             current_load = None
+#             loadsancution = None
+#             solar_pump = None
+#             pump_qunt = None
+#             pump_warranty = None
+#
+#             if project_type == "Water Pump":
+#                 solar_pump = request.POST.get('solar_pump')
+#                 pump_qunt = request.POST.get('pump_qunt')
+#                 pump_warranty = request.POST.get('pump_warranty')
+#             else:
+#                 Consumer = request.POST.get('Consumer')
+#                 current_load = request.POST.get('Bill_unit')
+#                 loadsancution = request.POST.get('loadsancution')
+#
+#             if city_name == "Other" and new_city_name:
+#                 # Check if the new city already exists in the database
+#                 existing_city = Customer.objects.filter(City=new_city_name).first()
+#                 if not existing_city:
+#                     city_name = new_city_name
+#                 else:
+#                     city_name = new_city_name
+#
+#             if Teamid:
+#                 team1 = User.objects.get(id=Teamid)
+#             else:
+#                 team1 = 1
+#
+#             new_cust = Customer(Cust_id=Cust_id, Comp_name=Comp_name, Consumer=Consumer, current_load=current_load, first_name=first_name, middle_name=middle_name, last_name=last_name,
+#                                 Address=Address, Plant_Capacity=Plant_Capacity, Ups_Soft=Ups_Soft, Cust_type=Cust_type,
+#                                 City=city_name, email=email, phone=phone, solar_comp=solar_comp,
+#                                 UPSC=UPSC, Emp_id=Emp_id, state=state, Pincode=Pincode, new_customer=user, loadsancution=loadsancution, po_date=po_date, po_order=po_order,
+#                                 Engg_Assign=team1, qunt_solar=qunt_solar, qunt_inv=qunt_inv, sol_warranty=sol_warranty, inv_warranty=inv_warranty, com_warranty=com_warranty,
+#                                 project_type=project_type, solar_pump=solar_pump, pump_qunt=pump_qunt, pump_warranty=pump_warranty,  phase=phase, advance_paid = advance_paid)
+#             new_cust.save()
+#
+#             # After saving Customer, create related Result entry
+#             result = Result.objects.create(
+#                     consumer=Comp_name,  # Or any other field like customer name
+#                     consumer_id=new_cust,  # Link to newly created Customer
+#                     AssignTo=Emp_id if isinstance(Emp_id, User) else None  # Assign the engineer if available
+#                 )
+#             result.save()
+#             messages.info(request, 'New Customer enrolled Successfully')
+#
+#             cust = Customer.objects.all()
+#             if Cust_id:
+#                 cust = cust.filter(Cust_id=Cust_id)
+#                 context = {
+#                     'cust': cust,
+#                     'count1': count1,
+#                     'notification1': notification1,
+#                     'engineers': engineers,
+#                     'cities': cities,
+#                 }
+#                 return render(request, 'customer/Cust_emp.html', context)
+#             return HttpResponseRedirect("customer/Cust_emp")
+#         return HttpResponse("Form is not valid")  # Add this line
+#     else:
+#         form = UserCreationForm()
+#         context = {
+#             'form': form,
+#             'count1': count1,
+#             'notification1': notification1,
+#             'engineers': engineers,
+#             'cities': cities,
+#         }
+#         return render(request, 'customer/Cust_emp.html', context)
+
+#
+# @login_required(login_url='user-login')
+# def Cust_emp(request):
+#     # Get quotation data from session if coming from conversion
+#     quotation_data = request.session.pop('quotation_data', None) if request.GET.get('from_quotation') else None
+#
+#     Cust_id = 1001 if Customer.objects.count() == 0 else Customer.objects.aggregate(max=Max('Cust_id'))["max"] + 1
+#     Cust_type = 'Residential'
+#     count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
+#     notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
+#     engineers = User.objects.filter(profile__department__isnull=False).filter(profile__department='Engineers').filter(
+#         is_staff='1').filter(is_active='1')
+#     cities = Customer.objects.values_list('City', flat=True).distinct().order_by('City')
+#
+#     # If we have quotation data, pre-fill initial values
+#     initial_data = {}
+#     if quotation_data:
+#         initial_data = {
+#             'project_type': quotation_data.get('project_type', ''),
+#             'Plant_Capacity': quotation_data.get('plant_capacity', ''),
+#             'phase': quotation_data.get('phase', ''),
+#             'po_order': quotation_data.get('po_order_no', ''),
+#             'po_date': quotation_data.get('po_date', ''),
+#             'first_name': quotation_data.get('first_name', ''),
+#             'middle_name': quotation_data.get('middle_name', ''),
+#             'last_name': quotation_data.get('last_name', ''),
+#             'Address': quotation_data.get('address', ''),
+#             'state': quotation_data.get('state', ''),
+#             'email': quotation_data.get('email', ''),
+#             'phone': quotation_data.get('phone', ''),
+#             'Consumer': quotation_data.get('consumer_no', ''),
+#         }
+#
+#     if request.method == 'POST':
+#         # Create a new user first
+#         form = UserCreationForm(request.POST)
+#         if form.is_valid():
+#             user = form.save(commit=False)
+#             user.email = request.POST['email']  # Add email to user object
+#             user.first_name = request.POST['first_name']
+#             user.last_name = request.POST['last_name']
+#             user.save()
+#             # Add the user to the 'Customers' group
+#             group = Group.objects.get(name='Customers')
+#             user.groups.add(group)
+#
+#             # Retrieve phase value from POST data
+#             phase = int(request.POST.get('phase', 0))  # Default to 0 if not provided
+#             Comp_name = request.POST['first_name'] + " " + request.POST['last_name']
+#             first_name = request.POST['first_name']
+#             middle_name = request.POST['middle_name']
+#             last_name = request.POST['last_name']
+#             Address = request.POST['Address']
+#             Plant_Capacity = int(request.POST['Plant_Capacity'])
+#             Ups_Soft = request.POST['Ups_Soft']
+#             email = request.POST['email']
+#             phone = int(request.POST['phone'])
+#             solar_comp = request.POST['solar_comp']
+#             UPSC = request.POST['UPSC']
+#             state = request.POST['state']
+#             Pincode = int(request.POST['Pincode'])
+#             po_date = (request.POST['po_date'])
+#             po_order = request.POST['po_order']
+#             qunt_solar = request.POST['qunt_solar']
+#             qunt_inv = request.POST['qunt_inv']
+#             Teamid = request.POST['Engineer_Assigned']
+#             city_name = request.POST.get('city_name')
+#             new_city_name = request.POST.get('new_city_name')
+#             advance_paid = request.POST.get('advance_paid')  # Will be 'paid' or 'not_paid'
+#
+#             Emp_id = request.user
+#             sol_warranty = request.POST['sol_warranty']
+#             inv_warranty = request.POST['inv_warranty']
+#             com_warranty = request.POST['com_warranty']
+#             project_type = request.POST['project_type']
+#
+#             # Initialize fields
+#             Consumer = None
+#             current_load = None
+#             loadsancution = None
+#             solar_pump = None
+#             pump_qunt = None
+#             pump_warranty = None
+#
+#             if project_type == "Water Pump":
+#                 solar_pump = request.POST.get('solar_pump')
+#                 pump_qunt = request.POST.get('pump_qunt')
+#                 pump_warranty = request.POST.get('pump_warranty')
+#             else:
+#                 Consumer = request.POST.get('Consumer')
+#                 current_load = request.POST.get('Bill_unit')
+#                 loadsancution = request.POST.get('loadsancution')
+#
+#             if city_name == "Other" and new_city_name:
+#                 # Check if the new city already exists in the database
+#                 existing_city = Customer.objects.filter(City=new_city_name).first()
+#                 if not existing_city:
+#                     city_name = new_city_name
+#                 else:
+#                     city_name = new_city_name
+#
+#             if Teamid:
+#                 team1 = User.objects.get(id=Teamid)
+#             else:
+#                 team1 = 1
+#
+#             new_cust = Customer(Cust_id=Cust_id, Comp_name=Comp_name, Consumer=Consumer, current_load=current_load,
+#                                 first_name=first_name, middle_name=middle_name, last_name=last_name,
+#                                 Address=Address, Plant_Capacity=Plant_Capacity, Ups_Soft=Ups_Soft, Cust_type=Cust_type,
+#                                 City=city_name, email=email, phone=phone, solar_comp=solar_comp,
+#                                 UPSC=UPSC, Emp_id=Emp_id, state=state, Pincode=Pincode, new_customer=user,
+#                                 loadsancution=loadsancution, po_date=po_date, po_order=po_order,
+#                                 Engg_Assign=team1, qunt_solar=qunt_solar, qunt_inv=qunt_inv, sol_warranty=sol_warranty,
+#                                 inv_warranty=inv_warranty, com_warranty=com_warranty,
+#                                 project_type=project_type, solar_pump=solar_pump, pump_qunt=pump_qunt,
+#                                 pump_warranty=pump_warranty, phase=phase, advance_paid=advance_paid)
+#             new_cust.save()
+#
+#             # After saving Customer, create related Result entry
+#             result = Result.objects.create(
+#                 consumer=Comp_name,  # Or any other field like customer name
+#                 consumer_id=new_cust,  # Link to newly created Customer
+#                 AssignTo=Emp_id if isinstance(Emp_id, User) else None  # Assign the engineer if available
+#             )
+#             result.save()
+#             messages.info(request, 'New Customer enrolled Successfully')
+#
+#             cust = Customer.objects.all()
+#             if Cust_id:
+#                 cust = cust.filter(Cust_id=Cust_id)
+#                 context = {
+#                     'cust': cust,
+#                     'count1': count1,
+#                     'notification1': notification1,
+#                     'engineers': engineers,
+#                     'cities': cities,
+#                 }
+#                 return render(request, 'customer/Cust_emp.html', context)
+#             return HttpResponseRedirect("customer/Cust_emp")
+#         return HttpResponse("Form is not valid")  # Add this line
+#     else:
+#         form = UserCreationForm()
+#         context = {
+#             'form': form,
+#             'count1': count1,
+#             'notification1': notification1,
+#             'engineers': engineers,
+#             'cities': cities,
+#             'quotation_data': quotation_data,  # Add to context
+#             # Add initial data to context for template
+#             **initial_data
+#         }
+#         return render(request, 'customer/Cust_emp.html', context)
+#
+# @login_required(login_url='user-login')
+# def Cust_emp(request):
+#         # Check if coming from quotation conversion
+#         from_quotation = request.GET.get('from_quotation', False)
+#         quotation_data = None
+#
+#         if from_quotation:
+#             # Get quotation data from session
+#             session_data = request.session.get('quotation_data')
+#             if session_data:
+#                 # Check if data is recent (within last 5 minutes)
+#                 import time
+#                 timestamp = session_data.get('timestamp', 0)
+#                 current_time = time.time()
+#
+#                 if current_time - timestamp < 300:  # 5 minutes
+#                     quotation_data = session_data.get('data', {})
+#                     # Clear the session data after retrieving it
+#                     if 'quotation_data' in request.session:
+#                         del request.session['quotation_data']
+#                         request.session.modified = True
+#                 else:
+#                     # Data is too old
+#                     if 'quotation_data' in request.session:
+#                         del request.session['quotation_data']
+#                         request.session.modified = True
+#
+#         Cust_id = 1001 if Customer.objects.count() == 0 else Customer.objects.aggregate(max=Max('Cust_id'))["max"] + 1
+#         Cust_type = 'Residential'
+#         count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
+#         notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
+#         engineers = User.objects.filter(profile__department__isnull=False).filter(profile__department='Engineers').filter(
+#             is_staff='1').filter(is_active='1')
+#         cities = Customer.objects.values_list('City', flat=True).distinct().order_by('City')
+#
+#         # Debug: Print quotation data
+#         print(f"From quotation: {from_quotation}")
+#         print(f"Quotation data: {quotation_data}")
+#
+#         # Initialize context with default values
+#         context = {
+#             'count1': count1,
+#             'notification1': notification1,
+#             'engineers': engineers,
+#             'cities': cities,
+#             'from_quotation': from_quotation,
+#         }
+#
+#         # If we have quotation data, add it to context
+#         if quotation_data:
+#             # Handle plant capacity - ensure it's a number
+#             plant_capacity = quotation_data.get('plant_capacity', '')
+#             if plant_capacity:
+#                 try:
+#                     plant_capacity = float(plant_capacity)
+#                 except (ValueError, TypeError):
+#                     plant_capacity = ''
+#
+#             # Handle phase conversion
+#             phase = quotation_data.get('phase', '')
+#             if phase == 'Single Phase':
+#                 phase = 1
+#             elif phase == 'Three Phase':
+#                 phase = 3
+#             elif phase == '0' or phase == 'Not Applicable':
+#                 phase = 0
+#             else:
+#                 phase = ''
+#
+#             context.update({
+#                 'consumer_type': quotation_data.get('consumer_type', ''),
+#                 'project_type': quotation_data.get('project_type', ''),
+#                 'Plant_Capacity': plant_capacity,
+#                 'phase': phase,
+#                 'po_order': quotation_data.get('po_order_no', ''),
+#                 'po_date': quotation_data.get('po_date', ''),
+#                 'first_name': quotation_data.get('first_name', ''),
+#                 'middle_name': quotation_data.get('middle_name', ''),
+#                 'last_name': quotation_data.get('last_name', ''),
+#                 'Address': quotation_data.get('address', ''),
+#                 'state': quotation_data.get('state', ''),
+#                 'email': quotation_data.get('email', ''),
+#                 'phone': quotation_data.get('phone', ''),
+#                 'Consumer': quotation_data.get('consumer_no', ''),
+#                 'city_name': quotation_data.get('city', ''),
+#             })
+#
+#             # Debug: Print what we're passing to template
+#             print(f"Context data being passed: {context.get('first_name')} {context.get('last_name')}")
+#             print(f"Plant Capacity: {context.get('Plant_Capacity')}")
+#             print(f"Address: {context.get('Address')}")
+#
+#         if request.method == 'POST':
+#             # ... your existing POST handling code remains the same ...
+#             form = UserCreationForm(request.POST)
+#             if form.is_valid():
+#                 user = form.save(commit=False)
+#             user.email = request.POST['email']  # Add email to user object
+#             user.first_name = request.POST['first_name']
+#             user.last_name = request.POST['last_name']
+#             user.save()
+#             # Add the user to the 'Customers' group
+#             group = Group.objects.get(name='Customers')
+#             user.groups.add(group)
+#
+#             # Retrieve phase value from POST data
+#             phase = int(request.POST.get('phase', 0))  # Default to 0 if not provided
+#             Comp_name = request.POST['first_name'] + " " + request.POST['last_name']
+#             first_name = request.POST['first_name']
+#             middle_name = request.POST['middle_name']
+#             last_name = request.POST['last_name']
+#             Address = request.POST['Address']
+#             Plant_Capacity = int(request.POST['Plant_Capacity'])
+#             Ups_Soft = request.POST['Ups_Soft']
+#             email = request.POST['email']
+#             phone = int(request.POST['phone'])
+#             solar_comp = request.POST['solar_comp']
+#             UPSC = request.POST['UPSC']
+#             state = request.POST['state']
+#             Pincode = int(request.POST['Pincode'])
+#             po_date = (request.POST['po_date'])
+#             po_order = request.POST['po_order']
+#             qunt_solar = request.POST['qunt_solar']
+#             qunt_inv = request.POST['qunt_inv']
+#             Teamid = request.POST['Engineer_Assigned']
+#             city_name = request.POST.get('city_name')
+#             new_city_name = request.POST.get('new_city_name')
+#             advance_paid = request.POST.get('advance_paid')  # Will be 'paid' or 'not_paid'
+#
+#             Emp_id = request.user
+#             sol_warranty = request.POST['sol_warranty']
+#             inv_warranty = request.POST['inv_warranty']
+#             com_warranty = request.POST['com_warranty']
+#             project_type = request.POST['project_type']
+#
+#             # Initialize fields
+#             Consumer = None
+#             current_load = None
+#             loadsancution = None
+#             solar_pump = None
+#             pump_qunt = None
+#             pump_warranty = None
+#
+#             if project_type == "Water Pump":
+#                 solar_pump = request.POST.get('solar_pump')
+#                 pump_qunt = request.POST.get('pump_qunt')
+#                 pump_warranty = request.POST.get('pump_warranty')
+#             else:
+#                 Consumer = request.POST.get('Consumer')
+#                 current_load = request.POST.get('Bill_unit')
+#                 loadsancution = request.POST.get('loadsancution')
+#
+#             if city_name == "Other" and new_city_name:
+#                 # Check if the new city already exists in the database
+#                 existing_city = Customer.objects.filter(City=new_city_name).first()
+#                 if not existing_city:
+#                     city_name = new_city_name
+#                 else:
+#                     city_name = new_city_name
+#
+#             if Teamid:
+#                 team1 = User.objects.get(id=Teamid)
+#             else:
+#                 team1 = 1
+#
+#             new_cust = Customer(Cust_id=Cust_id, Comp_name=Comp_name, Consumer=Consumer, current_load=current_load,
+#                                 first_name=first_name, middle_name=middle_name, last_name=last_name,
+#                                 Address=Address, Plant_Capacity=Plant_Capacity, Ups_Soft=Ups_Soft, Cust_type=Cust_type,
+#                                 City=city_name, email=email, phone=phone, solar_comp=solar_comp,
+#                                 UPSC=UPSC, Emp_id=Emp_id, state=state, Pincode=Pincode, new_customer=user,
+#                                 loadsancution=loadsancution, po_date=po_date, po_order=po_order,
+#                                 Engg_Assign=team1, qunt_solar=qunt_solar, qunt_inv=qunt_inv, sol_warranty=sol_warranty,
+#                                 inv_warranty=inv_warranty, com_warranty=com_warranty,
+#                                 project_type=project_type, solar_pump=solar_pump, pump_qunt=pump_qunt,
+#                                 pump_warranty=pump_warranty, phase=phase, advance_paid=advance_paid)
+#             new_cust.save()
+#
+#             # After saving Customer, create related Result entry
+#             result = Result.objects.create(
+#                 consumer=Comp_name,  # Or any other field like customer name
+#                 consumer_id=new_cust,  # Link to newly created Customer
+#                 AssignTo=Emp_id if isinstance(Emp_id, User) else None  # Assign the engineer if available
+#             )
+#             result.save()
+#             messages.info(request, 'New Customer enrolled Successfully')
+#
+#             cust = Customer.objects.all()
+#             if Cust_id:
+#                 cust = cust.filter(Cust_id=Cust_id)
+#                 context = {
+#                     'cust': cust,
+#                     'count1': count1,
+#                     'notification1': notification1,
+#                     'engineers': engineers,
+#                     'cities': cities,
+#                 }
+#                 return render(request, 'customer/Cust_emp.html', context)
+#             return HttpResponseRedirect("customer/Cust_emp")
+#             return HttpResponse("Form is not valid")  # Add this line
+#         else:
+#          form = UserCreationForm()
+#          context['form'] = form
+#          return render(request, 'customer/Cust_emp.html', context)
+
 
 @login_required(login_url='user-login')
 def Cust_emp(request):
+    # Check if coming from quotation conversion
+    from_quotation = request.GET.get('from_quotation', False)
+
+    # Debug: Print all GET parameters
+    print(f"DEBUG Cust_emp - from_quotation: {from_quotation}")
+    if from_quotation:
+        print("DEBUG Cust_emp - All GET parameters:")
+        for key, value in request.GET.items():
+            print(f"  {key}: {value}")
+
     Cust_id = 1001 if Customer.objects.count() == 0 else Customer.objects.aggregate(max=Max('Cust_id'))["max"] + 1
     Cust_type = 'Residential'
     count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
     notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
-    engineers = User.objects.filter(profile__department__isnull=False).filter(profile__department='Engineers').filter(is_staff='1').filter(is_active='1')
+    engineers = User.objects.filter(profile__department__isnull=False).filter(profile__department='Engineers').filter(
+        is_staff='1').filter(is_active='1')
     cities = Customer.objects.values_list('City', flat=True).distinct().order_by('City')
 
+    # Initialize context with default values
+    context = {
+        'count1': count1,
+        'notification1': notification1,
+        'engineers': engineers,
+        'cities': cities,
+        'from_quotation': from_quotation,
+    }
+
+    # If coming from quotation, get data from URL parameters (NOT session)
+    if from_quotation:
+        # Extract and process data from GET parameters
+        consumer_type = request.GET.get('consumer_type', '')
+        project_type = request.GET.get('project_type', '')
+
+        # Handle plant capacity - safely convert to float
+        plant_capacity = request.GET.get('plant_capacity', '')
+        if plant_capacity:
+            try:
+                plant_capacity = float(plant_capacity)
+            except (ValueError, TypeError):
+                plant_capacity = ''
+
+        # Handle phase conversion
+        phase = request.GET.get('phase', '')
+        if '1 Phase' in str(phase) or str(phase) == '1' or 'Single Phase' in str(phase):
+            phase = 1
+        elif '3 Phase' in str(phase) or str(phase) == '3' or 'Three Phase' in str(phase):
+            phase = 3
+        elif str(phase) == '0' or 'Not Applicable' in str(phase):
+            phase = 0
+        else:
+            try:
+                phase = int(phase)
+            except (ValueError, TypeError):
+                phase = ''
+
+        # Get names directly from GET parameters
+        first_name = request.GET.get('first_name', '')
+        middle_name = request.GET.get('middle_name', '')
+        last_name = request.GET.get('last_name', '')
+
+        # If names are empty but we have consumer_full_name, try to extract
+        if not first_name and request.GET.get('consumer_full_name'):
+            full_name = request.GET.get('consumer_full_name', '')
+            name_parts = full_name.split()
+            if len(name_parts) >= 1:
+                first_name = name_parts[0]
+                if len(name_parts) >= 2:
+                    last_name = name_parts[-1]
+                if len(name_parts) > 2:
+                    middle_name = ' '.join(name_parts[1:-1])
+
+        # Get city - check multiple possible parameter names
+        city = request.GET.get('city', '')
+        if not city:
+            city = request.GET.get('consumer_address2', '')
+
+        # Get consumer number
+        consumer_no = request.GET.get('consumer_no', '')
+
+        # Get PO details
+        po_order_no = request.GET.get('po_order_no', '')
+        po_date = request.GET.get('po_date', '')
+
+        # Get other details
+        address = request.GET.get('address', '')
+        state = request.GET.get('state', '')
+        email = request.GET.get('email', '')
+        phone = request.GET.get('phone', '')
+
+        # Update context with ALL values
+        context.update({
+            'consumer_type': consumer_type,
+            'project_type': project_type,
+            'Plant_Capacity': plant_capacity,
+            'phase': phase,
+            'po_order': po_order_no,
+            'po_date': po_date,
+            'first_name': first_name,
+            'middle_name': middle_name,
+            'last_name': last_name,
+            'Address': address,
+            'city_name': city,  # Note: template uses city_name
+            'state': state,
+            'email': email,
+            'phone': phone,
+            'Consumer': consumer_no,
+        })
+
+        # Debug: Print what we're setting in context
+        print(f"DEBUG Cust_emp - Context data being set:")
+        for key in ['consumer_type', 'project_type', 'Plant_Capacity', 'phase', 'po_order',
+                    'po_date', 'first_name', 'middle_name', 'last_name', 'Address',
+                    'city_name', 'state', 'email', 'phone', 'Consumer']:
+            print(f"  {key}: {context.get(key, 'Not set')}")
+
     if request.method == 'POST':
-        # Create a new user first
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
@@ -89,19 +685,23 @@ def Cust_emp(request):
             # Retrieve phase value from POST data
             phase = int(request.POST.get('phase', 0))  # Default to 0 if not provided
             Comp_name = request.POST['first_name'] + " " + request.POST['last_name']
-            first_name= request.POST['first_name']
-            middle_name= request.POST['middle_name']
-            last_name= request.POST['last_name']
-            Address= request.POST['Address']
-            Plant_Capacity=int(request.POST['Plant_Capacity'])
-            Ups_Soft= request.POST['Ups_Soft']
-            email= request.POST['email']
-            phone=int(request.POST['phone'])
-            solar_comp= request.POST['solar_comp']
-            UPSC= request.POST['UPSC']
-            state= request.POST['state']
-            Pincode=int(request.POST['Pincode'])
-            po_date = (request.POST['po_date'])
+            first_name = request.POST['first_name']
+            middle_name = request.POST['middle_name']
+            last_name = request.POST['last_name']
+            Address = request.POST['Address']
+            Plant_Capacity = int(request.POST['Plant_Capacity'])
+            Ups_Soft = request.POST['Ups_Soft']
+            email = request.POST['email']
+            phone = int(request.POST['phone'])
+            solar_comp = request.POST['solar_comp']
+            UPSC = request.POST['UPSC']
+            state = request.POST['state']
+            Pincode = int(request.POST['Pincode'])
+            # po_date = (request.POST['po_date'])
+            # Date
+            po_date_str = request.POST.get('po_date')
+            po_date = datetime.strptime(po_date_str, "%Y-%m-%d").date() if po_date_str else None
+
             po_order = request.POST['po_order']
             qunt_solar = request.POST['qunt_solar']
             qunt_inv = request.POST['qunt_inv']
@@ -146,20 +746,63 @@ def Cust_emp(request):
             else:
                 team1 = 1
 
-            new_cust = Customer(Cust_id=Cust_id, Comp_name=Comp_name, Consumer=Consumer, current_load=current_load, first_name=first_name, middle_name=middle_name, last_name=last_name,
+            new_cust = Customer(Cust_id=Cust_id, Comp_name=Comp_name, Consumer=Consumer, current_load=current_load,
+                                first_name=first_name, middle_name=middle_name, last_name=last_name,
                                 Address=Address, Plant_Capacity=Plant_Capacity, Ups_Soft=Ups_Soft, Cust_type=Cust_type,
                                 City=city_name, email=email, phone=phone, solar_comp=solar_comp,
-                                UPSC=UPSC, Emp_id=Emp_id, state=state, Pincode=Pincode, new_customer=user, loadsancution=loadsancution, po_date=po_date, po_order=po_order,
-                                Engg_Assign=team1, qunt_solar=qunt_solar, qunt_inv=qunt_inv, sol_warranty=sol_warranty, inv_warranty=inv_warranty, com_warranty=com_warranty,
-                                project_type=project_type, solar_pump=solar_pump, pump_qunt=pump_qunt, pump_warranty=pump_warranty,  phase=phase, advance_paid = advance_paid)
+                                UPSC=UPSC, Emp_id=Emp_id, state=state, Pincode=Pincode, new_customer=user,
+                                loadsancution=loadsancution, po_date=po_date, po_order=po_order,
+                                Engg_Assign=team1, qunt_solar=qunt_solar, qunt_inv=qunt_inv, sol_warranty=sol_warranty,
+                                inv_warranty=inv_warranty, com_warranty=com_warranty,
+                                project_type=project_type, solar_pump=solar_pump, pump_qunt=pump_qunt,
+                                pump_warranty=pump_warranty, phase=phase, advance_paid=advance_paid)
             new_cust.save()
+
+            # If this customer was created from a quotation conversion, mark the quotation converted
+            quotation_id = request.GET.get('quotation_id') or request.POST.get('quotation_id') or \
+                           (request.session.get('quotation_data', {}) or {}).get('quotation_id')
+            if quotation_id:
+                try:
+                    Quotation.objects.filter(pk=quotation_id).update(convert_consumer=True)
+                except Exception as e:
+                    print(f"Failed to mark quotation {quotation_id} as converted: {e}")
+                # Also update any Lead that refers to this quotation so the lead reflects customer conversion.
+                try:
+                    if Lead is not None:
+                        # set convert_customer_id to the new customer's primary key (Cust_id)
+                        leads_qs = Lead.objects.filter(quotation_id=quotation_id)
+                        leads_qs.update(convert_customer_id=new_cust.Cust_id, status='booked')
+                        # Add an activity entry for conversion
+                        try:
+                            from leads.models import LeadActivity
+                            for l in leads_qs:
+                                LeadActivity.objects.create(
+                                    lead=l,
+                                    user=request.user,
+                                    type='conversion',
+                                    note=f'Converted to customer {new_cust.Cust_id} ({new_cust.Comp_name})'
+                                )
+                        except Exception:
+                            # don't block conversion if activity creation fails
+                            pass
+                except Exception as e:
+                    print(f"Failed to update Lead convert_customer_id for quotation {quotation_id}: {e}")
+
+            # # If this customer was created from a quotation conversion, mark the quotation converted
+            # quotation_id = request.GET.get('quotation_id') or request.POST.get('quotation_id') or \
+            #                (request.session.get('quotation_data', {}) or {}).get('quotation_id')
+            # if quotation_id:
+            #     try:
+            #         Quotation.objects.filter(pk=quotation_id).update(convert_consumer=True)
+            #     except Exception as e:
+            #         print(f"Failed to mark quotation {quotation_id} as converted: {e}")
 
             # After saving Customer, create related Result entry
             result = Result.objects.create(
-                    consumer=Comp_name,  # Or any other field like customer name
-                    consumer_id=new_cust,  # Link to newly created Customer
-                    AssignTo=Emp_id if isinstance(Emp_id, User) else None  # Assign the engineer if available
-                )
+                consumer=Comp_name,  # Or any other field like customer name
+                consumer_id=new_cust,  # Link to newly created Customer
+                AssignTo=Emp_id if isinstance(Emp_id, User) else None  # Assign the engineer if available
+            )
             result.save()
             messages.info(request, 'New Customer enrolled Successfully')
 
@@ -175,17 +818,145 @@ def Cust_emp(request):
                 }
                 return render(request, 'customer/Cust_emp.html', context)
             return HttpResponseRedirect("customer/Cust_emp")
-        return HttpResponse("Form is not valid")  # Add this line
+        else:
+            context['form'] = form
+            return render(request, 'customer/Cust_emp.html', context)
     else:
         form = UserCreationForm()
-        context = {
-            'form': form,
-            'count1': count1,
-            'notification1': notification1,
-            'engineers': engineers,
-            'cities': cities,
-        }
+        context['form'] = form
         return render(request, 'customer/Cust_emp.html', context)
+#
+# @login_required(login_url='user-login')
+# def Comm_Cust(request):
+#     Cust_id = 1001 if Customer.objects.count() == 0 else Customer.objects.aggregate(max=Max('Cust_id'))["max"] + 1
+#     count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
+#     notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
+#
+#     engineers = User.objects.filter(profile__department__isnull=False).filter(profile__department='Engineers').filter(is_staff='1').filter(is_active='1')
+#     cities = Customer.objects.values_list('City', flat=True).distinct().order_by('City')
+#
+#     Cust_type = 'Commersial'
+#     if request.method == 'POST':
+#         # Create a new user first
+#         form = UserCreationForm(request.POST)
+#         if form.is_valid():
+#             user = form.save(commit=False)
+#             user.email = request.POST['email']  # Add email to user object
+#             user.first_name = request.POST['first_name']
+#             user.last_name = request.POST['last_name']
+#
+#             user.save()
+#             # Add the user to the 'Customers' group
+#             group = Group.objects.get(name='Customers')
+#             user.groups.add(group)
+#
+#             # Retrieve phase value from POST data
+#             phase = int(request.POST.get('phase', 0))  # Default to 0 if not provided
+#
+#             # Create a new customer first
+#             Comp_name = request.POST['Comp_name']
+#
+#             first_name = request.POST['first_name']
+#             middle_name = request.POST['middle_name']
+#             last_name = request.POST['last_name']
+#             Address = request.POST['Address']
+#             Plant_Capacity = int(request.POST['Plant_Capacity'])
+#             Ups_Soft = request.POST['Ups_Soft']
+#             phone = int(request.POST['phone'])
+#             solar_comp = request.POST['solar_comp']
+#             UPSC = request.POST['UPSC']
+#             state = request.POST['state']
+#             Pincode = int(request.POST['Pincode'])
+#
+#             po_date = (request.POST['po_date'])
+#             po_order = request.POST['po_order']
+#             qunt_solar = request.POST['qunt_solar']
+#             qunt_inv = request.POST['qunt_inv']
+#             Teamid = request.POST['Engineer_Assigned']
+#             city_name = request.POST.get('city_name')
+#             new_city_name = request.POST.get('new_city_name')
+#             advance_paid = request.POST.get('advance_paid')  # Will be 'paid' or 'not_paid'
+#
+#             Emp_id = request.user
+#
+#             sol_warranty = request.POST['sol_warranty']
+#             inv_warranty = request.POST['inv_warranty']
+#             com_warranty = request.POST['com_warranty']
+#             project_type = request.POST['project_type']
+#
+#             # Initialize fields
+#             Consumer = None
+#             current_load = None
+#             loadsancution = None
+#             solar_pump = None
+#             pump_qunt = None
+#             pump_warranty = None
+#
+#             if project_type == "Water Pump":
+#                 solar_pump = request.POST.get('solar_pump')
+#                 pump_qunt = request.POST.get('pump_qunt')
+#                 pump_warranty = request.POST.get('pump_warranty')
+#             else:
+#                 Consumer = request.POST.get('Consumer')
+#                 current_load = request.POST.get('Bill_unit')
+#                 loadsancution = request.POST.get('loadsancution')
+#
+#             if city_name == "Other" and new_city_name:
+#                 # Check if the new city already exists in the database
+#                 existing_city = Customer.objects.filter(City=new_city_name).first()
+#                 if not existing_city:
+#                     city_name = new_city_name
+#                 else:
+#                     city_name = new_city_name
+#
+#             if Teamid:
+#                 team1 = User.objects.get(id=Teamid)
+#             else:
+#                 team1 = 1
+#
+#             new_cust = Customer(Cust_id=Cust_id, Comp_name=Comp_name, Consumer=Consumer, current_load=current_load, first_name=first_name,
+#                                 middle_name=middle_name, last_name=last_name, Address=Address, Plant_Capacity=Plant_Capacity,
+#                                 Ups_Soft=Ups_Soft, Cust_type=Cust_type, City=city_name, email=user.email, phone=phone,
+#                                 solar_comp=solar_comp, UPSC=UPSC, Emp_id=Emp_id, state=state,
+#                                 Pincode=Pincode, new_customer=user, loadsancution=loadsancution, po_order=po_order, po_date=po_date,
+#                                 Engg_Assign=team1, qunt_solar=qunt_solar, qunt_inv=qunt_inv, sol_warranty=sol_warranty, inv_warranty=inv_warranty, com_warranty=com_warranty,
+#                                 project_type=project_type, solar_pump=solar_pump, pump_qunt=pump_qunt, pump_warranty=pump_warranty,  phase=phase, advance_paid = advance_paid)
+#             new_cust.save()
+#
+#             # After saving Customer, create related Result entry
+#             result = Result.objects.create(
+#                 consumer=Comp_name,  # Or any other field like customer name
+#                 consumer_id=new_cust,  # Link to newly created Customer
+#                 AssignTo=Emp_id if isinstance(Emp_id, User) else None  # Assign the engineer if available
+#             )
+#             result.save()
+#
+#             error = "no"
+#             messages.info(request, 'New Customer enrolled Successfully')
+#             cust = Customer.objects.all()
+#             if Cust_id:
+#                 cust = cust.filter(Cust_id=Cust_id)
+#                 context = {
+#                     'cust': cust,
+#                     'count1': count1,
+#                     'notification1': notification1,
+#                     'engineers': engineers,
+#                     'cities': cities,
+#                 }
+#                 return render(request, 'customer/Comm_Cust.html', context)
+#             return HttpResponse("Form is not valid")  # Add this line
+#
+#     else:
+#         form = UserCreationForm()
+#         context = {
+#             'form': form,
+#             'count1': count1,
+#             'notification1': notification1,
+#             'engineers': engineers,
+#             'cities': cities,
+#             # 'project_type': project_type,
+#         }
+#         return render(request, 'customer/Comm_Cust.html', context)
 
 
 @login_required(login_url='user-login')
@@ -193,131 +964,297 @@ def Comm_Cust(request):
     Cust_id = 1001 if Customer.objects.count() == 0 else Customer.objects.aggregate(max=Max('Cust_id'))["max"] + 1
     count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
     notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
-
-    engineers = User.objects.filter(profile__department__isnull=False).filter(profile__department='Engineers').filter(is_staff='1').filter(is_active='1')
+    engineers = User.objects.filter(profile__department__isnull=False).filter(profile__department='Engineers').filter(
+        is_staff='1').filter(is_active='1')
     cities = Customer.objects.values_list('City', flat=True).distinct().order_by('City')
 
     Cust_type = 'Commersial'
+
+    # Debug: Print all GET parameters if coming from quotation
+    from_quotation = request.GET.get('from_quotation', False)
+    if from_quotation:
+        print(f"DEBUG Comm_Cust - GET parameters: {dict(request.GET)}")
+
+    # Initialize context
+    context = {
+        'count1': count1,
+        'notification1': notification1,
+        'engineers': engineers,
+        'cities': cities,
+        'Cust_type': Cust_type,
+        'from_quotation': from_quotation,
+    }
+
+    # If coming from quotation, get data from URL parameters
+    if from_quotation:
+        # Handle plant capacity - safely convert to float
+        plant_capacity = request.GET.get('plant_capacity', '')
+        if plant_capacity:
+            try:
+                plant_capacity = float(plant_capacity)
+            except (ValueError, TypeError):
+                plant_capacity = ''
+
+        # Handle phase conversion
+        phase = request.GET.get('phase', '')
+        if '1 Phase' in str(phase) or str(phase) == '1' or 'Single Phase' in str(phase):
+            phase = 1
+        elif '3 Phase' in str(phase) or str(phase) == '3' or 'Three Phase' in str(phase):
+            phase = 3
+        elif str(phase) == '0' or 'Not Applicable' in str(phase):
+            phase = 0
+        else:
+            try:
+                phase = int(phase)
+            except (ValueError, TypeError):
+                phase = ''
+
+        # Get consumer full name for company/farm name
+        consumer_full_name = request.GET.get('consumer_full_name', '')
+        comp_name = request.GET.get('comp_name', consumer_full_name)
+
+        # Get city
+        city = request.GET.get('city', '')
+
+        context.update({
+            'project_type': request.GET.get('project_type', ''),
+            'Plant_Capacity': plant_capacity,
+            'phase': phase,
+            'po_order': request.GET.get('po_order_no', ''),
+            'po_date': request.GET.get('po_date', ''),
+            'Comp_name': comp_name,
+            'first_name': request.GET.get('first_name', ''),
+            'middle_name': request.GET.get('middle_name', ''),
+            'last_name': request.GET.get('last_name', ''),
+            'Address': request.GET.get('address', ''),
+            'city_name': city,
+            'state': request.GET.get('state', ''),
+            'email': request.GET.get('email', ''),
+            'phone': request.GET.get('phone', ''),
+            'Consumer': request.GET.get('consumer_no', ''),
+        })
+
     if request.method == 'POST':
+        print(f"DEBUG Comm_Cust - POST data received")
+
         # Create a new user first
         form = UserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.email = request.POST['email']  # Add email to user object
-            user.first_name = request.POST['first_name']
-            user.last_name = request.POST['last_name']
+            try:
+                user = form.save(commit=False)
+                user.email = request.POST['email']
+                user.first_name = request.POST['first_name']
+                user.last_name = request.POST['last_name']
+                user.save()
 
-            user.save()
-            # Add the user to the 'Customers' group
-            group = Group.objects.get(name='Customers')
-            user.groups.add(group)
+                # Add the user to the 'Customers' group
+                group = Group.objects.get(name='Customers')
+                user.groups.add(group)
 
-            # Retrieve phase value from POST data
-            phase = int(request.POST.get('phase', 0))  # Default to 0 if not provided
+                # SAFELY retrieve phase value from POST data
+                phase = 0
+                try:
+                    phase = int(request.POST.get('phase', 0))
+                except (ValueError, TypeError):
+                    phase = 0
 
-            # Create a new customer first
-            Comp_name = request.POST['Comp_name']
+                # Create a new customer
+                Comp_name = request.POST['Comp_name']
+                first_name = request.POST['first_name']
+                middle_name = request.POST['middle_name']
+                last_name = request.POST['last_name']
+                Address = request.POST['Address']
 
-            first_name = request.POST['first_name']
-            middle_name = request.POST['middle_name']
-            last_name = request.POST['last_name']
-            Address = request.POST['Address']
-            Plant_Capacity = int(request.POST['Plant_Capacity'])
-            Ups_Soft = request.POST['Ups_Soft']
-            phone = int(request.POST['phone'])
-            solar_comp = request.POST['solar_comp']
-            UPSC = request.POST['UPSC']
-            state = request.POST['state']
-            Pincode = int(request.POST['Pincode'])
+                # SAFELY convert Plant_Capacity to int
+                Plant_Capacity = 0
+                try:
+                    Plant_Capacity = int(request.POST['Plant_Capacity'])
+                except (ValueError, TypeError):
+                    # Try float first, then convert to int
+                    try:
+                        Plant_Capacity = int(float(request.POST['Plant_Capacity']))
+                    except:
+                        Plant_Capacity = 0
 
-            po_date = (request.POST['po_date'])
-            po_order = request.POST['po_order']
-            qunt_solar = request.POST['qunt_solar']
-            qunt_inv = request.POST['qunt_inv']
-            Teamid = request.POST['Engineer_Assigned']
-            city_name = request.POST.get('city_name')
-            new_city_name = request.POST.get('new_city_name')
-            advance_paid = request.POST.get('advance_paid')  # Will be 'paid' or 'not_paid'
+                Ups_Soft = request.POST['Ups_Soft']
 
-            Emp_id = request.user
+                # SAFELY convert phone to int
+                phone = 0
+                try:
+                    phone = int(request.POST['phone'])
+                except (ValueError, TypeError):
+                    phone = 0
 
-            sol_warranty = request.POST['sol_warranty']
-            inv_warranty = request.POST['inv_warranty']
-            com_warranty = request.POST['com_warranty']
-            project_type = request.POST['project_type']
+                solar_comp = request.POST['solar_comp']
+                UPSC = request.POST['UPSC']
+                state = request.POST['state']
 
-            # Initialize fields
-            Consumer = None
-            current_load = None
-            loadsancution = None
-            solar_pump = None
-            pump_qunt = None
-            pump_warranty = None
+                # SAFELY convert Pincode to int
+                Pincode = 0
+                try:
+                    Pincode = int(request.POST['Pincode'])
+                except (ValueError, TypeError):
+                    Pincode = 0
 
-            if project_type == "Water Pump":
-                solar_pump = request.POST.get('solar_pump')
-                pump_qunt = request.POST.get('pump_qunt')
-                pump_warranty = request.POST.get('pump_warranty')
-            else:
-                Consumer = request.POST.get('Consumer')
-                current_load = request.POST.get('Bill_unit')
-                loadsancution = request.POST.get('loadsancution')
+                po_date = request.POST['po_date']
+                po_order = request.POST['po_order']
 
-            if city_name == "Other" and new_city_name:
-                # Check if the new city already exists in the database
-                existing_city = Customer.objects.filter(City=new_city_name).first()
-                if not existing_city:
-                    city_name = new_city_name
+                # SAFELY convert quantities
+                qunt_solar = 0
+                try:
+                    qunt_solar = int(request.POST['qunt_solar'])
+                except (ValueError, TypeError):
+                    qunt_solar = 0
+
+                qunt_inv = 0
+                try:
+                    qunt_inv = int(request.POST['qunt_inv'])
+                except (ValueError, TypeError):
+                    qunt_inv = 0
+
+                Teamid = request.POST['Engineer_Assigned']
+                city_name = request.POST.get('city_name')
+                new_city_name = request.POST.get('new_city_name')
+                advance_paid = request.POST.get('advance_paid')
+                Emp_id = request.user
+
+                # SAFELY convert warranty fields
+                sol_warranty = 0
+                try:
+                    sol_warranty = int(request.POST['sol_warranty'])
+                except (ValueError, TypeError):
+                    sol_warranty = 0
+
+                inv_warranty = 0
+                try:
+                    inv_warranty = int(request.POST['inv_warranty'])
+                except (ValueError, TypeError):
+                    inv_warranty = 0
+
+                com_warranty = 0
+                try:
+                    com_warranty = int(request.POST['com_warranty'])
+                except (ValueError, TypeError):
+                    com_warranty = 0
+
+                project_type = request.POST['project_type']
+
+                # Initialize fields
+                Consumer = None
+                current_load = None
+                loadsancution = None
+                solar_pump = None
+                pump_qunt = None
+                pump_warranty = None
+
+                if project_type == "Water Pump":
+                    solar_pump = request.POST.get('solar_pump')
+                    pump_qunt = request.POST.get('pump_qunt')
+                    pump_warranty = request.POST.get('pump_warranty')
                 else:
-                    city_name = new_city_name
+                    Consumer = request.POST.get('Consumer')
+                    current_load = request.POST.get('Bill_unit')
+                    loadsancution = request.POST.get('loadsancution')
 
-            if Teamid:
-                team1 = User.objects.get(id=Teamid)
-            else:
-                team1 = 1
+                if city_name == "Other" and new_city_name:
+                    # Check if the new city already exists in the database
+                    existing_city = Customer.objects.filter(City=new_city_name).first()
+                    if not existing_city:
+                        city_name = new_city_name
+                    else:
+                        city_name = new_city_name
 
-            new_cust = Customer(Cust_id=Cust_id, Comp_name=Comp_name, Consumer=Consumer, current_load=current_load, first_name=first_name,
-                                middle_name=middle_name, last_name=last_name, Address=Address, Plant_Capacity=Plant_Capacity,
-                                Ups_Soft=Ups_Soft, Cust_type=Cust_type, City=city_name, email=user.email, phone=phone,
-                                solar_comp=solar_comp, UPSC=UPSC, Emp_id=Emp_id, state=state,
-                                Pincode=Pincode, new_customer=user, loadsancution=loadsancution, po_order=po_order, po_date=po_date,
-                                Engg_Assign=team1, qunt_solar=qunt_solar, qunt_inv=qunt_inv, sol_warranty=sol_warranty, inv_warranty=inv_warranty, com_warranty=com_warranty,
-                                project_type=project_type, solar_pump=solar_pump, pump_qunt=pump_qunt, pump_warranty=pump_warranty,  phase=phase, advance_paid = advance_paid)
-            new_cust.save()
+                if Teamid:
+                    team1 = User.objects.get(id=Teamid)
+                else:
+                    team1 = 1
 
-            # After saving Customer, create related Result entry
-            result = Result.objects.create(
-                consumer=Comp_name,  # Or any other field like customer name
-                consumer_id=new_cust,  # Link to newly created Customer
-                AssignTo=Emp_id if isinstance(Emp_id, User) else None  # Assign the engineer if available
-            )
-            result.save()
+                # Create the customer record
+                new_cust = Customer(
+                    Cust_id=Cust_id,
+                    Comp_name=Comp_name,
+                    Consumer=Consumer,
+                    current_load=current_load,
+                    first_name=first_name,
+                    middle_name=middle_name,
+                    last_name=last_name,
+                    Address=Address,
+                    Plant_Capacity=Plant_Capacity,
+                    Ups_Soft=Ups_Soft,
+                    Cust_type=Cust_type,
+                    City=city_name,
+                    email=user.email,
+                    phone=phone,
+                    solar_comp=solar_comp,
+                    UPSC=UPSC,
+                    Emp_id=Emp_id,
+                    state=state,
+                    Pincode=Pincode,
+                    new_customer=user,
+                    loadsancution=loadsancution,
+                    po_order=po_order,
+                    po_date=po_date,
+                    Engg_Assign=team1,
+                    qunt_solar=qunt_solar,
+                    qunt_inv=qunt_inv,
+                    sol_warranty=sol_warranty,
+                    inv_warranty=inv_warranty,
+                    com_warranty=com_warranty,
+                    project_type=project_type,
+                    solar_pump=solar_pump,
+                    pump_qunt=pump_qunt,
+                    pump_warranty=pump_warranty,
+                    phase=phase,
+                    advance_paid=advance_paid
+                )
+                new_cust.save()
 
-            error = "no"
-            messages.info(request, 'New Customer enrolled Successfully')
-            cust = Customer.objects.all()
-            if Cust_id:
-                cust = cust.filter(Cust_id=Cust_id)
-                context = {
-                    'cust': cust,
-                    'count1': count1,
-                    'notification1': notification1,
-                    'engineers': engineers,
-                    'cities': cities,
-                }
+                # If this customer was created from a quotation conversion, mark the quotation converted
+                quotation_id = request.GET.get('quotation_id') or request.POST.get('quotation_id') or \
+                               (request.session.get('quotation_data', {}) or {}).get('quotation_id')
+                if quotation_id:
+                    try:
+                        Quotation.objects.filter(pk=quotation_id).update(convert_consumer=True)
+                    except Exception as e:
+                        print(f"Failed to mark quotation {quotation_id} as converted: {e}")
+
+                # After saving Customer, create related Result entry
+                result = Result.objects.create(
+                    consumer=Comp_name,
+                    consumer_id=new_cust,
+                    AssignTo=Emp_id if isinstance(Emp_id, User) else None
+                )
+                result.save()
+
+                messages.info(request, 'New Customer enrolled Successfully')
+                cust = Customer.objects.all()
+                if Cust_id:
+                    cust = cust.filter(Cust_id=Cust_id)
+                    context = {
+                        'cust': cust,
+                        'count1': count1,
+                        'notification1': notification1,
+                        'engineers': engineers,
+                        'cities': cities,
+                    }
+                    return render(request, 'customer/Comm_Cust.html', context)
+
+            except Exception as e:
+                print(f"DEBUG Comm_Cust - Error saving form: {str(e)}")
+                print(f"DEBUG Comm_Cust - Error type: {type(e)}")
+                import traceback
+                print(f"DEBUG Comm_Cust - Traceback: {traceback.format_exc()}")
+                messages.error(request, f'Error saving customer: {str(e)}')
                 return render(request, 'customer/Comm_Cust.html', context)
-            return HttpResponse("Form is not valid")  # Add this line
+
+        else:
+            print(f"DEBUG Comm_Cust - Form errors: {form.errors}")
+            messages.error(request, 'Form is not valid. Please check your inputs.')
+            return render(request, 'customer/Comm_Cust.html', context)
 
     else:
         form = UserCreationForm()
-        context = {
-            'form': form,
-            'count1': count1,
-            'notification1': notification1,
-            'engineers': engineers,
-            'cities': cities,
-            # 'project_type': project_type,
-        }
+        context['form'] = form
         return render(request, 'customer/Comm_Cust.html', context)
 
 
@@ -335,137 +1272,792 @@ def check_username(request):
         exists = User.objects.filter(username__iexact=username).exists()
         return JsonResponse({'exists': exists})
 
+#
+# @login_required(login_url='user-login')
+# def Comp_Cust(request):
+#     Cust_id = 1001 if Customer.objects.count() == 0 else Customer.objects.aggregate(max=Max('Cust_id'))["max"] + 1
+#     count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
+#     notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
+#     Cust_type = 'Industrial'
+#     engineers = User.objects.filter(profile__department__isnull=False).filter(profile__department='Engineers').filter(is_staff='1').filter(is_active='1')
+#     cities = Customer.objects.values_list('City', flat=True).distinct().order_by('City')
+#
+#     if request.method == 'POST':
+#         # Create a new user first
+#         form = UserCreationForm(request.POST)
+#         if form.is_valid():
+#             user = form.save(commit=False)
+#             user.email = request.POST['email']  # Add email to user object
+#             user.save()
+#             # Add the user to the 'Customers' group
+#             group = Group.objects.get(name='Customers')
+#             user.groups.add(group)
+#
+#             # Retrieve phase value from POST data
+#             phase = int(request.POST.get('phase', 0))  # Default to 0 if not provided
+#
+#             #Cust_id = int(request.POST['Cust_id'])
+#             Comp_name = request.POST['Comp_name']
+#             Address= request.POST['Address']
+#             Plant_Capacity=int(request.POST['Plant_Capacity'])
+#             Ups_Soft= request.POST['Ups_Soft']
+#             email= request.POST['email']
+#             phone=int(request.POST['phone'])
+#             solar_comp= request.POST['solar_comp']
+#             UPSC= request.POST['UPSC']
+#             state= request.POST['state']
+#             Pincode=int(request.POST['Pincode'])
+#             po_date = (request.POST['po_date'])
+#             po_order = request.POST['po_order']
+#             qunt_solar = request.POST['qunt_solar']
+#             qunt_inv = request.POST['qunt_inv']
+#             Teamid = request.POST['Engineer_Assigned']
+#             city_name = request.POST.get('city_name')
+#             new_city_name = request.POST.get('new_city_name')
+#             advance_paid = request.POST.get('advance_paid')  # Will be 'paid' or 'not_paid'
+#
+#             Emp_id = request.user
+#
+#             sol_warranty = request.POST['sol_warranty']
+#             inv_warranty = request.POST['inv_warranty']
+#             com_warranty = request.POST['com_warranty']
+#             project_type = request.POST['project_type']
+#
+#
+#             # Initialize fields
+#             Consumer = None
+#             current_load = None
+#             loadsancution = None
+#             solar_pump = None
+#             pump_qunt = None
+#             pump_warranty = None
+#
+#             if project_type == "Water Pump":
+#                 solar_pump = request.POST.get('solar_pump')
+#                 pump_qunt = request.POST.get('pump_qunt')
+#                 pump_warranty = request.POST.get('pump_warranty')
+#             else:
+#                 Consumer = request.POST.get('Consumer')
+#                 current_load = request.POST.get('Bill_unit')
+#                 loadsancution = request.POST.get('loadsancution')
+#
+#             if city_name == "Other" and new_city_name:
+#                 # Check if the new city already exists in the database
+#                 existing_city = Customer.objects.filter(City=new_city_name).first()
+#                 if not existing_city:
+#                  city_name = new_city_name
+#                 else:
+#                   city_name = new_city_name
+#
+#             if Teamid:
+#                 team1 = User.objects.get(id=Teamid)
+#             else:
+#                 team1 = 1
+#
+#             new_cust = Customer(Cust_id=Cust_id, Comp_name=Comp_name, Consumer=Consumer, current_load=current_load,
+#                                 Address=Address, Plant_Capacity=Plant_Capacity, Ups_Soft=Ups_Soft, Cust_type=Cust_type,
+#                                 City=city_name, email=email, phone=phone, solar_comp=solar_comp,
+#                                 UPSC=UPSC, Emp_id=Emp_id, state=state, Pincode=Pincode, new_customer=user, loadsancution=loadsancution, po_date=po_date, po_order=po_order,
+#                                 Engg_Assign=team1, qunt_solar=qunt_solar, qunt_inv=qunt_inv, sol_warranty=sol_warranty, inv_warranty=inv_warranty, com_warranty=com_warranty,
+#                                 project_type=project_type, solar_pump=solar_pump, pump_qunt=pump_qunt, pump_warranty=pump_warranty, phase=phase, advance_paid = advance_paid)
+#             new_cust.save()
+#
+#             # After saving Customer, create related Result entry
+#             result = Result.objects.create(
+#                 consumer=Comp_name,  # Or any other field like customer name
+#                 consumer_id=new_cust,  # Link to newly created Customer
+#                 AssignTo=Emp_id if isinstance(Emp_id, User) else None  # Assign the engineer if available
+#             )
+#             result.save()
+#
+#             messages.info(request, 'New Customer enrolled Successfully')
+#             cust = Customer.objects.all()
+#             if Cust_id:
+#                 cust = cust.filter(Cust_id=Cust_id)
+#                 context = {
+#                     'count1': count1,
+#                     'cust': cust,
+#                     'notification1': notification1,
+#                     'engineers': engineers,
+#                     'cities': cities,
+#                 }
+#                 return render(request, 'customer/Comp_Cust.html', context)
+#             return HttpResponse("Form is not valid")  # Add this line
+#     else:
+#         form = UserCreationForm()
+#         context = {
+#              'form': form,
+#              'count1': count1,
+#              'notification1': notification1,
+#              'engineers': engineers,
+#              'cities': cities,
+#         }
+#         return render(request, 'customer/Comp_Cust.html', context)
+
+
+# from datetime import datetime
+
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User, Group
+from django.contrib import messages
+from django.shortcuts import render
+from django.db.models import Max
+
+from .models import Customer, Result
+from .forms import UserCreationForm
+# from notification.models import staff_Notification
+
+#
+# @login_required(login_url='user-login')
+# def Comp_Cust(request):
+#
+#     count1 = staff_Notification.objects.filter(
+#         staff_id=request.user.id, status=False
+#     ).count()
+#
+#     notification1 = staff_Notification.objects.filter(
+#         staff_id=request.user.id, status=False
+#     ).order_by('-created_at')
+#
+#     Cust_type = 'Industrial'
+#
+#     engineers = User.objects.filter(
+#         profile__department='Engineers',
+#         is_staff=True,
+#         is_active=True
+#     )
+#
+#     cities = Customer.objects.values_list(
+#         'City', flat=True
+#     ).distinct().order_by('City')
+#
+#     if request.method == 'POST':
+#
+#         # ---------------- USER CREATION ----------------
+#         form = UserCreationForm(request.POST)
+#
+#         if not form.is_valid():
+#             messages.error(request, "User form is invalid")
+#             return render(request, 'customer/Comp_Cust.html', {
+#                 'form': form,
+#                 'count1': count1,
+#                 'notification1': notification1,
+#                 'engineers': engineers,
+#                 'cities': cities,
+#             })
+#
+#         user = form.save(commit=False)
+#         user.email = request.POST.get('email')
+#         user.save()
+#
+#         group = Group.objects.get(name='Customers')
+#         user.groups.add(group)
+#
+#         # ---------------- SAFE POST DATA ----------------
+#         Comp_name = request.POST.get('Comp_name')
+#         Address = request.POST.get('Address')
+#         Ups_Soft = request.POST.get('Ups_Soft')
+#         email = request.POST.get('email')
+#         solar_comp = request.POST.get('solar_comp')
+#         UPSC = request.POST.get('UPSC')
+#         state = request.POST.get('state')
+#         po_order = request.POST.get('po_order')
+#         project_type = request.POST.get('project_type')
+#         advance_paid = request.POST.get('advance_paid', 'not_paid')
+#
+#         # Integers (safe)
+#         Plant_Capacity = int(request.POST.get('Plant_Capacity', 0))
+#         phone = int(request.POST.get('phone', 0))
+#         Pincode = int(request.POST.get('Pincode', 0))
+#         qunt_solar = int(request.POST.get('qunt_solar', 0))
+#         qunt_inv = int(request.POST.get('qunt_inv', 0))
+#         sol_warranty = int(request.POST.get('sol_warranty', 0))
+#         inv_warranty = int(request.POST.get('inv_warranty', 0))
+#         com_warranty = int(request.POST.get('com_warranty', 0))
+#         phase = int(request.POST.get('phase', 0))
+#
+#         # Date
+#         po_date_str = request.POST.get('po_date')
+#         po_date = datetime.strptime(po_date_str, "%Y-%m-%d").date() if po_date_str else None
+#
+#
+#         # ---------------- CITY ----------------
+#         city_name = request.POST.get('city_name')
+#         new_city_name = request.POST.get('new_city_name')
+#
+#         if city_name == "Other" and new_city_name:
+#             city_name = new_city_name
+#
+#         # ---------------- ENGINEER ----------------
+#         Teamid = request.POST.get('Engineer_Assigned')
+#         team1 = User.objects.get(id=Teamid) if Teamid else None
+#
+#         # ---------------- PROJECT TYPE ----------------
+#         Consumer = None
+#         current_load = None
+#         loadsancution = None
+#         solar_pump = None
+#         pump_qunt = None
+#         pump_warranty = None
+#
+#         if project_type == "Water Pump":
+#             solar_pump = request.POST.get('solar_pump')
+#             pump_qunt = int(request.POST.get('pump_qunt', 0))
+#             pump_warranty = int(request.POST.get('pump_warranty', 0))
+#         else:
+#             Consumer = request.POST.get('Consumer')
+#             current_load = int(request.POST.get('Bill_unit', 0))
+#             loadsancution = int(request.POST.get('loadsancution', 0))
+#
+#         # ---------------- CUSTOMER SAVE ----------------
+#         new_cust = Customer.objects.create(
+#             Comp_name=Comp_name,
+#             Consumer=Consumer,
+#             current_load=current_load,
+#             Address=Address,
+#             Plant_Capacity=Plant_Capacity,
+#             Ups_Soft=Ups_Soft,
+#             Cust_type=Cust_type,
+#             City=city_name,
+#             email=email,
+#             phone=phone,
+#             solar_comp=solar_comp,
+#             UPSC=UPSC,
+#             Emp_id=request.user,
+#             state=state,
+#             Pincode=Pincode,
+#             new_customer=user,
+#             loadsancution=loadsancution,
+#             po_date=po_date,
+#             po_order=po_order,
+#             Engg_Assign=team1,
+#             qunt_solar=qunt_solar,
+#             qunt_inv=qunt_inv,
+#             sol_warranty=sol_warranty,
+#             inv_warranty=inv_warranty,
+#             com_warranty=com_warranty,
+#             project_type=project_type,
+#             solar_pump=solar_pump,
+#             pump_qunt=pump_qunt,
+#             pump_warranty=pump_warranty,
+#             phase=phase,
+#             advance_paid=advance_paid
+#         )
+#
+#         # ---------------- RESULT SAVE ----------------
+#         Result.objects.create(
+#             consumer=Comp_name,
+#             consumer_id=new_cust,
+#             AssignTo=request.user
+#         )
+#
+#         messages.success(request, "New Customer enrolled Successfully")
+#
+#     # ---------------- GET REQUEST ----------------
+#     form = UserCreationForm()
+#     return render(request, 'customer/Comp_Cust.html', {
+#         'form': form,
+#         'count1': count1,
+#         'notification1': notification1,
+#         'engineers': engineers,
+#         'cities': cities,
+#     })
+#
+#
+#
+# @login_required(login_url='user-login')
+# def Govt_Cust(request):
+#     Cust_id = 1001 if Customer.objects.count() == 0 else Customer.objects.aggregate(max=Max('Cust_id'))["max"] + 1
+#     count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
+#     notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
+#     Cust_type = 'Goverment'
+#     engineers = User.objects.filter(profile__department__isnull=False).filter(profile__department='Engineers').filter(is_staff='1').filter(is_active='1')
+#     cities = Customer.objects.values_list('City', flat=True).distinct().order_by('City')
+#
+#     if request.method == 'POST':
+#         # Create a new user first
+#         form = UserCreationForm(request.POST)
+#         if form.is_valid():
+#             user = form.save(commit=False)
+#             user.email = request.POST['email']  # Add email to user object
+#             user.save()
+#             # Add the user to the 'Customers' group
+#             group = Group.objects.get(name='Customers')
+#             user.groups.add(group)
+#
+#             # Retrieve phase value from POST data
+#             phase = int(request.POST.get('phase', 0))  # Default to 0 if not provided
+#
+#             Comp_name = request.POST['Comp_name']
+#             Consumer= request.POST['Consumer']
+#             current_load= request.POST['Bill_unit']
+#             Address= request.POST['Address']
+#             Plant_Capacity=int(request.POST['Plant_Capacity'])
+#             Ups_Soft= request.POST['Ups_Soft']
+#             email= request.POST['email']
+#             phone=int(request.POST['phone'])
+#             solar_comp= request.POST['solar_comp']
+#             UPSC= request.POST['UPSC']
+#             state= request.POST['state']
+#             Pincode=int(request.POST['Pincode'])
+#             Gender= request.POST.get('Gender')
+#             loadsancution = request.POST['loadsancution']
+#             po_date = (request.POST['po_date'])
+#             po_order = request.POST['po_order']
+#             qunt_solar = request.POST['qunt_solar']
+#             qunt_inv = request.POST['qunt_inv']
+#             Teamid = request.POST['Engineer_Assigned']
+#             city_name = request.POST.get('city_name')
+#             new_city_name = request.POST.get('new_city_name')
+#             Emp_id = request.user
+#
+#             sol_warranty = request.POST['sol_warranty']
+#             inv_warranty = request.POST['inv_warranty']
+#             com_warranty = request.POST['com_warranty']
+#             project_type = request.POST['project_type']
+#
+#             advance_paid = request.POST.get('advance_paid')  # Will be 'paid' or 'not_paid'
+#
+#             # Initialize fields
+#             Consumer = None
+#             current_load = None
+#             loadsancution = None
+#             solar_pump = None
+#             pump_qunt = None
+#             pump_warranty = None
+#
+#             if project_type == "Water Pump":
+#                 solar_pump = request.POST.get('solar_pump')
+#                 pump_qunt = request.POST.get('pump_qunt')
+#                 pump_warranty = request.POST.get('pump_warranty')
+#             else:
+#                 Consumer = request.POST.get('Consumer')
+#                 current_load = request.POST.get('Bill_unit')
+#                 loadsancution = request.POST.get('loadsancution')
+#
+#
+#             if city_name == "Other" and new_city_name:
+#                 # Check if the new city already exists in the database
+#                 existing_city = Customer.objects.filter(City=new_city_name).first()
+#                 if not existing_city:
+#                     city_name = new_city_name
+#                 else:
+#                     city_name = new_city_name
+#
+#             if Teamid:
+#                 team1 = User.objects.get(id=Teamid)
+#             else:
+#                 team1 = 1
+#
+#             new_cust = Customer(Cust_id=Cust_id, Comp_name=Comp_name, Consumer=Consumer, current_load=current_load,
+#                                 Address=Address, Plant_Capacity=Plant_Capacity, Ups_Soft=Ups_Soft, Cust_type=Cust_type,
+#                                 City=city_name, email=email, phone=phone, solar_comp=solar_comp,
+#                                 UPSC=UPSC, Emp_id=Emp_id, state=state, Pincode=Pincode, new_customer=user, loadsancution=loadsancution, po_date=po_date, po_order=po_order,
+#                                 Engg_Assign=team1, qunt_solar=qunt_solar, qunt_inv=qunt_inv, sol_warranty=sol_warranty, inv_warranty=inv_warranty, com_warranty=com_warranty,
+#                                 project_type=project_type, solar_pump=solar_pump, pump_qunt=pump_qunt, pump_warranty=pump_warranty, phase=phase,  advance_paid=advance_paid)
+#             new_cust.save()
+#
+#             # After saving Customer, create related Result entry
+#             result = Result.objects.create(
+#                 consumer=Comp_name,  # Or any other field like customer name
+#                 consumer_id=new_cust,  # Link to newly created Customer
+#                 AssignTo=Emp_id if isinstance(Emp_id, User) else None  # Assign the engineer if available
+#             )
+#             result.save()
+#
+#             messages.info(request, 'New Consumer enrolled Successfully')
+#             cust = Customer.objects.all()
+#             if Cust_id:
+#                 cust = cust.filter(Cust_id=Cust_id)
+#                 context = {
+#                     'count1': count1,
+#                     'cust': cust,
+#                     'notification1': notification1,
+#                     'engineers': engineers,
+#                     'cities': cities,
+#                 }
+#                 return render(request , 'customer/Govt_Cust.html', context)
+#             return HttpResponse("Form is not valid")  # Add this line
+#            # return HttpResponseRedirect(request, 'customer/Govt_Cust.html', context)
+#     else:
+#         form = UserCreationForm()
+#         context = {
+#             'form': form,
+#             'count1': count1,
+#             'notification1': notification1,
+#             'engineers': engineers,
+#             'cities': cities,
+#         }
+#         return render(request, 'customer/Govt_Cust.html', context)
+
 
 @login_required(login_url='user-login')
 def Comp_Cust(request):
-    Cust_id = 1001 if Customer.objects.count() == 0 else Customer.objects.aggregate(max=Max('Cust_id'))["max"] + 1
-    count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
-    notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
+    # Check if coming from quotation conversion
+    from_quotation = request.GET.get('from_quotation', False)
+
+    # Debug: Print all GET parameters
+    print(f"DEBUG Comp_Cust - from_quotation: {from_quotation}")
+    if from_quotation:
+        print("DEBUG Comp_Cust - All GET parameters:")
+        for key, value in request.GET.items():
+            print(f"  {key}: {value}")
+
+    count1 = staff_Notification.objects.filter(
+        staff_id=request.user.id, status=False
+    ).count()
+
+    notification1 = staff_Notification.objects.filter(
+        staff_id=request.user.id, status=False
+    ).order_by('-created_at')
+
     Cust_type = 'Industrial'
-    engineers = User.objects.filter(profile__department__isnull=False).filter(profile__department='Engineers').filter(is_staff='1').filter(is_active='1')
-    cities = Customer.objects.values_list('City', flat=True).distinct().order_by('City')
+
+    engineers = User.objects.filter(
+        profile__department='Engineers',
+        is_staff=True,
+        is_active=True
+    )
+
+    cities = Customer.objects.values_list(
+        'City', flat=True
+    ).distinct().order_by('City')
+
+    # Initialize context with default values
+    context = {
+        'count1': count1,
+        'notification1': notification1,
+        'engineers': engineers,
+        'cities': cities,
+        'Cust_type': Cust_type,
+        'from_quotation': from_quotation,
+    }
+
+    # If coming from quotation, get data from URL parameters
+    if from_quotation:
+        # Extract and process data from GET parameters
+        consumer_type = request.GET.get('consumer_type', '')
+        project_type = request.GET.get('project_type', '')
+
+        # Handle plant capacity - safely convert to float
+        plant_capacity = request.GET.get('plant_capacity', '')
+        if plant_capacity:
+            try:
+                plant_capacity = float(plant_capacity)
+            except (ValueError, TypeError):
+                plant_capacity = ''
+
+        # Handle phase conversion
+        phase = request.GET.get('phase', '')
+        if '1 Phase' in str(phase) or str(phase) == '1' or 'Single Phase' in str(phase):
+            phase = 1
+        elif '3 Phase' in str(phase) or str(phase) == '3' or 'Three Phase' in str(phase):
+            phase = 3
+        elif str(phase) == '0' or 'Not Applicable' in str(phase):
+            phase = 0
+        else:
+            try:
+                phase = int(phase)
+            except (ValueError, TypeError):
+                phase = ''
+
+        # Get consumer full name for company/farm name
+        consumer_full_name = request.GET.get('consumer_full_name', '')
+        comp_name = request.GET.get('comp_name', consumer_full_name)
+
+        # Get city
+        city = request.GET.get('city', '')
+
+        # Get consumer number
+        consumer_no = request.GET.get('consumer_no', '')
+
+        # Get PO details
+        po_order_no = request.GET.get('po_order_no', '')
+        po_date = request.GET.get('po_date', '')
+
+        # Get other details
+        address = request.GET.get('address', '')
+        state = request.GET.get('state', '')
+        email = request.GET.get('email', '')
+        phone = request.GET.get('phone', '')
+
+        # Update context with ALL values
+        context.update({
+            'consumer_type': consumer_type,
+            'project_type': project_type,
+            'Plant_Capacity': plant_capacity,
+            'phase': phase,
+            'po_order': po_order_no,
+            'po_date': po_date,
+            'Comp_name': comp_name,
+            'Address': address,
+            'city_name': city,
+            'state': state,
+            'email': email,
+            'phone': phone,
+            'Consumer': consumer_no,
+        })
+
+        # Debug: Print what we're setting in context
+        print(f"DEBUG Comp_Cust - Context data being set:")
+        for key in ['consumer_type', 'project_type', 'Plant_Capacity', 'phase', 'po_order',
+                    'po_date', 'Comp_name', 'Address', 'city_name', 'state', 'email',
+                    'phone', 'Consumer']:
+            print(f"  {key}: {context.get(key, 'Not set')}")
 
     if request.method == 'POST':
-        # Create a new user first
+        # ---------------- USER CREATION ----------------
         form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.email = request.POST['email']  # Add email to user object
-            user.save()
-            # Add the user to the 'Customers' group
-            group = Group.objects.get(name='Customers')
-            user.groups.add(group)
 
-            # Retrieve phase value from POST data
-            phase = int(request.POST.get('phase', 0))  # Default to 0 if not provided
+        if not form.is_valid():
+            messages.error(request, "User form is invalid")
+            context['form'] = form
+            return render(request, 'customer/Comp_Cust.html', context)
 
-            #Cust_id = int(request.POST['Cust_id'])
-            Comp_name = request.POST['Comp_name']
-            Address= request.POST['Address']
-            Plant_Capacity=int(request.POST['Plant_Capacity'])
-            Ups_Soft= request.POST['Ups_Soft']
-            email= request.POST['email']
-            phone=int(request.POST['phone'])
-            solar_comp= request.POST['solar_comp']
-            UPSC= request.POST['UPSC']
-            state= request.POST['state']
-            Pincode=int(request.POST['Pincode'])
-            po_date = (request.POST['po_date'])
-            po_order = request.POST['po_order']
-            qunt_solar = request.POST['qunt_solar']
-            qunt_inv = request.POST['qunt_inv']
-            Teamid = request.POST['Engineer_Assigned']
-            city_name = request.POST.get('city_name')
-            new_city_name = request.POST.get('new_city_name')
-            advance_paid = request.POST.get('advance_paid')  # Will be 'paid' or 'not_paid'
+        user = form.save(commit=False)
+        user.email = request.POST.get('email')
+        user.save()
 
-            Emp_id = request.user
+        group = Group.objects.get(name='Customers')
+        user.groups.add(group)
 
-            sol_warranty = request.POST['sol_warranty']
-            inv_warranty = request.POST['inv_warranty']
-            com_warranty = request.POST['com_warranty']
-            project_type = request.POST['project_type']
+        # ---------------- SAFE POST DATA ----------------
+        Comp_name = request.POST.get('Comp_name')
+        Address = request.POST.get('Address')
+        Ups_Soft = request.POST.get('Ups_Soft')
+        email = request.POST.get('email')
+        solar_comp = request.POST.get('solar_comp')
+        UPSC = request.POST.get('UPSC')
+        state = request.POST.get('state')
+        po_order = request.POST.get('po_order')
+        project_type = request.POST.get('project_type')
+        advance_paid = request.POST.get('advance_paid', 'not_paid')
 
+        # Integers (safe)
+        Plant_Capacity = int(request.POST.get('Plant_Capacity', 0))
+        phone = int(request.POST.get('phone', 0))
+        Pincode = int(request.POST.get('Pincode', 0))
+        qunt_solar = int(request.POST.get('qunt_solar', 0))
+        qunt_inv = int(request.POST.get('qunt_inv', 0))
+        sol_warranty = int(request.POST.get('sol_warranty', 0))
+        inv_warranty = int(request.POST.get('inv_warranty', 0))
+        com_warranty = int(request.POST.get('com_warranty', 0))
+        phase = int(request.POST.get('phase', 0))
 
-            # Initialize fields
-            Consumer = None
-            current_load = None
-            loadsancution = None
-            solar_pump = None
-            pump_qunt = None
-            pump_warranty = None
+        # Date
+        po_date_str = request.POST.get('po_date')
+        po_date = datetime.strptime(po_date_str, "%Y-%m-%d").date() if po_date_str else None
 
-            if project_type == "Water Pump":
-                solar_pump = request.POST.get('solar_pump')
-                pump_qunt = request.POST.get('pump_qunt')
-                pump_warranty = request.POST.get('pump_warranty')
-            else:
-                Consumer = request.POST.get('Consumer')
-                current_load = request.POST.get('Bill_unit')
-                loadsancution = request.POST.get('loadsancution')
+        # ---------------- CITY ----------------
+        city_name = request.POST.get('city_name')
+        new_city_name = request.POST.get('new_city_name')
 
-            if city_name == "Other" and new_city_name:
-                # Check if the new city already exists in the database
-                existing_city = Customer.objects.filter(City=new_city_name).first()
-                if not existing_city:
-                 city_name = new_city_name
-                else:
-                  city_name = new_city_name
+        if city_name == "Other" and new_city_name:
+            city_name = new_city_name
 
-            if Teamid:
-                team1 = User.objects.get(id=Teamid)
-            else:
-                team1 = 1
+        # ---------------- ENGINEER ----------------
+        Teamid = request.POST.get('Engineer_Assigned')
+        team1 = User.objects.get(id=Teamid) if Teamid else None
 
-            new_cust = Customer(Cust_id=Cust_id, Comp_name=Comp_name, Consumer=Consumer, current_load=current_load,
-                                Address=Address, Plant_Capacity=Plant_Capacity, Ups_Soft=Ups_Soft, Cust_type=Cust_type,
-                                City=city_name, email=email, phone=phone, solar_comp=solar_comp,
-                                UPSC=UPSC, Emp_id=Emp_id, state=state, Pincode=Pincode, new_customer=user, loadsancution=loadsancution, po_date=po_date, po_order=po_order,
-                                Engg_Assign=team1, qunt_solar=qunt_solar, qunt_inv=qunt_inv, sol_warranty=sol_warranty, inv_warranty=inv_warranty, com_warranty=com_warranty,
-                                project_type=project_type, solar_pump=solar_pump, pump_qunt=pump_qunt, pump_warranty=pump_warranty, phase=phase, advance_paid = advance_paid)
-            new_cust.save()
+        # ---------------- PROJECT TYPE ----------------
+        Consumer = None
+        current_load = None
+        loadsancution = None
+        solar_pump = None
+        pump_qunt = None
+        pump_warranty = None
 
-            # After saving Customer, create related Result entry
-            result = Result.objects.create(
-                consumer=Comp_name,  # Or any other field like customer name
-                consumer_id=new_cust,  # Link to newly created Customer
-                AssignTo=Emp_id if isinstance(Emp_id, User) else None  # Assign the engineer if available
-            )
-            result.save()
+        if project_type == "Water Pump":
+            solar_pump = request.POST.get('solar_pump')
+            pump_qunt = int(request.POST.get('pump_qunt', 0))
+            pump_warranty = int(request.POST.get('pump_warranty', 0))
+        else:
+            Consumer = request.POST.get('Consumer')
+            current_load = int(request.POST.get('Bill_unit', 0))
+            loadsancution = int(request.POST.get('loadsancution', 0))
 
-            messages.info(request, 'New Customer enrolled Successfully')
-            cust = Customer.objects.all()
-            if Cust_id:
-                cust = cust.filter(Cust_id=Cust_id)
-                context = {
-                    'count1': count1,
-                    'cust': cust,
-                    'notification1': notification1,
-                    'engineers': engineers,
-                    'cities': cities,
-                }
-                return render(request, 'customer/Comp_Cust.html', context)
-            return HttpResponse("Form is not valid")  # Add this line
-    else:
-        form = UserCreationForm()
-        context = {
-             'form': form,
-             'count1': count1,
-             'notification1': notification1,
-             'engineers': engineers,
-             'cities': cities,
-        }
-        return render(request, 'customer/Comp_Cust.html', context)
+        # ---------------- CUSTOMER SAVE ----------------
+        Cust_id = 1001 if Customer.objects.count() == 0 else Customer.objects.aggregate(max=Max('Cust_id'))["max"] + 1
+
+        new_cust = Customer.objects.create(
+            Cust_id=Cust_id,
+            Comp_name=Comp_name,
+            Consumer=Consumer,
+            current_load=current_load,
+            Address=Address,
+            Plant_Capacity=Plant_Capacity,
+            Ups_Soft=Ups_Soft,
+            Cust_type=Cust_type,
+            City=city_name,
+            email=email,
+            phone=phone,
+            solar_comp=solar_comp,
+            UPSC=UPSC,
+            Emp_id=request.user,
+            state=state,
+            Pincode=Pincode,
+            new_customer=user,
+            loadsancution=loadsancution,
+            po_date=po_date,
+            po_order=po_order,
+            Engg_Assign=team1,
+            qunt_solar=qunt_solar,
+            qunt_inv=qunt_inv,
+            sol_warranty=sol_warranty,
+            inv_warranty=inv_warranty,
+            com_warranty=com_warranty,
+            project_type=project_type,
+            solar_pump=solar_pump,
+            pump_qunt=pump_qunt,
+            pump_warranty=pump_warranty,
+            phase=phase,
+            advance_paid=advance_paid
+        )
+
+        # # If this customer was created from a quotation conversion, mark the quotation converted
+        # quotation_id = request.GET.get('quotation_id') or request.POST.get('quotation_id') or \
+        #                (request.session.get('quotation_data', {}) or {}).get('quotation_id')
+        # if quotation_id:
+        #     try:
+        #         Quotation.objects.filter(pk=quotation_id).update(convert_consumer=True)
+        #     except Exception as e:
+        #         print(f"Failed to mark quotation {quotation_id} as converted: {e}")
+        #
+        # # ---------------- RESULT SAVE ----------------
+        # Result.objects.create(
+        #     consumer=Comp_name,
+        #     consumer_id=new_cust,
+        #     AssignTo=request.user
+        # )
+        new_cust.save()
+
+        # If this customer was created from a quotation conversion, mark the quotation converted
+        quotation_id = request.GET.get('quotation_id') or request.POST.get('quotation_id') or \
+                       (request.session.get('quotation_data', {}) or {}).get('quotation_id')
+        if quotation_id:
+            try:
+                Quotation.objects.filter(pk=quotation_id).update(convert_consumer=True)
+            except Exception as e:
+                print(f"Failed to mark quotation {quotation_id} as converted: {e}")
+
+        # After saving Customer, create related Result entry
+        result = Result.objects.create(
+            consumer=Comp_name,
+            consumer_id=new_cust,
+            AssignTo=request.user
+        )
+        result.save()
+
+        messages.success(request, "New Customer enrolled Successfully")
+        return HttpResponseRedirect(reverse('customer-cust'))
+
+    # ---------------- GET REQUEST ----------------
+    form = UserCreationForm()
+    context['form'] = form
+    return render(request, 'customer/Comp_Cust.html', context)
 
 
 @login_required(login_url='user-login')
 def Govt_Cust(request):
+    # Check if coming from quotation conversion
+    from_quotation = request.GET.get('from_quotation', False)
+
+    # Debug: Print all GET parameters
+    print(f"DEBUG Govt_Cust - from_quotation: {from_quotation}")
+    if from_quotation:
+        print("DEBUG Govt_Cust - All GET parameters:")
+        for key, value in request.GET.items():
+            print(f"  {key}: {value}")
+
     Cust_id = 1001 if Customer.objects.count() == 0 else Customer.objects.aggregate(max=Max('Cust_id'))["max"] + 1
     count1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).count()
     notification1 = staff_Notification.objects.filter(staff_id=request.user.id, status=False).order_by('-created_at')
     Cust_type = 'Goverment'
-    engineers = User.objects.filter(profile__department__isnull=False).filter(profile__department='Engineers').filter(is_staff='1').filter(is_active='1')
+    engineers = User.objects.filter(profile__department__isnull=False).filter(profile__department='Engineers').filter(
+        is_staff='1').filter(is_active='1')
     cities = Customer.objects.values_list('City', flat=True).distinct().order_by('City')
+
+    # Initialize context with default values
+    context = {
+        'count1': count1,
+        'notification1': notification1,
+        'engineers': engineers,
+        'cities': cities,
+        'Cust_type': Cust_type,
+        'from_quotation': from_quotation,
+    }
+
+    # If coming from quotation, get data from URL parameters
+    if from_quotation:
+        # Extract and process data from GET parameters
+        consumer_type = request.GET.get('consumer_type', '')
+        project_type = request.GET.get('project_type', '')
+
+        # Handle plant capacity - safely convert to float
+        plant_capacity = request.GET.get('plant_capacity', '')
+        if plant_capacity:
+            try:
+                plant_capacity = float(plant_capacity)
+            except (ValueError, TypeError):
+                plant_capacity = ''
+
+        # Handle phase conversion
+        phase = request.GET.get('phase', '')
+        if '1 Phase' in str(phase) or str(phase) == '1' or 'Single Phase' in str(phase):
+            phase = 1
+        elif '3 Phase' in str(phase) or str(phase) == '3' or 'Three Phase' in str(phase):
+            phase = 3
+        elif str(phase) == '0' or 'Not Applicable' in str(phase):
+            phase = 0
+        else:
+            try:
+                phase = int(phase)
+            except (ValueError, TypeError):
+                phase = ''
+
+        # Get consumer full name for company/farm name
+        consumer_full_name = request.GET.get('consumer_full_name', '')
+        comp_name = request.GET.get('comp_name', consumer_full_name)
+
+        # Get city
+        city = request.GET.get('city', '')
+
+        # Get consumer number
+        consumer_no = request.GET.get('consumer_no', '')
+
+        # Get PO details
+        po_order_no = request.GET.get('po_order_no', '')
+        po_date = request.GET.get('po_date', '')
+
+        # Get other details
+        address = request.GET.get('address', '')
+        state = request.GET.get('state', '')
+        email = request.GET.get('email', '')
+        phone = request.GET.get('phone', '')
+
+        # Update context with ALL values
+        context.update({
+            'consumer_type': consumer_type,
+            'project_type': project_type,
+            'Plant_Capacity': plant_capacity,
+            'phase': phase,
+            'po_order': po_order_no,
+            'po_date': po_date,
+            'Comp_name': comp_name,
+            'Address': address,
+            'city_name': city,
+            'state': state,
+            'email': email,
+            'phone': phone,
+            'Consumer': consumer_no,
+        })
+
+        # Debug: Print what we're setting in context
+        print(f"DEBUG Govt_Cust - Context data being set:")
+        for key in ['consumer_type', 'project_type', 'Plant_Capacity', 'phase', 'po_order',
+                    'po_date', 'Comp_name', 'Address', 'city_name', 'state', 'email',
+                    'phone', 'Consumer']:
+            print(f"  {key}: {context.get(key, 'Not set')}")
 
     if request.method == 'POST':
         # Create a new user first
@@ -482,20 +2074,23 @@ def Govt_Cust(request):
             phase = int(request.POST.get('phase', 0))  # Default to 0 if not provided
 
             Comp_name = request.POST['Comp_name']
-            Consumer= request.POST['Consumer']
-            current_load= request.POST['Bill_unit']
-            Address= request.POST['Address']
-            Plant_Capacity=int(request.POST['Plant_Capacity'])
-            Ups_Soft= request.POST['Ups_Soft']
-            email= request.POST['email']
-            phone=int(request.POST['phone'])
-            solar_comp= request.POST['solar_comp']
-            UPSC= request.POST['UPSC']
-            state= request.POST['state']
-            Pincode=int(request.POST['Pincode'])
-            Gender= request.POST.get('Gender')
+            Consumer = request.POST['Consumer']
+            current_load = request.POST['Bill_unit']
+            Address = request.POST['Address']
+            Plant_Capacity = int(request.POST['Plant_Capacity'])
+            Ups_Soft = request.POST['Ups_Soft']
+            email = request.POST['email']
+            phone = int(request.POST['phone'])
+            solar_comp = request.POST['solar_comp']
+            UPSC = request.POST['UPSC']
+            state = request.POST['state']
+            Pincode = int(request.POST['Pincode'])
             loadsancution = request.POST['loadsancution']
-            po_date = (request.POST['po_date'])
+            # po_date = (request.POST['po_date'])
+            # Date
+            po_date_str = request.POST.get('po_date')
+            po_date = datetime.strptime(po_date_str, "%Y-%m-%d").date() if po_date_str else None
+
             po_order = request.POST['po_order']
             qunt_solar = request.POST['qunt_solar']
             qunt_inv = request.POST['qunt_inv']
@@ -508,7 +2103,6 @@ def Govt_Cust(request):
             inv_warranty = request.POST['inv_warranty']
             com_warranty = request.POST['com_warranty']
             project_type = request.POST['project_type']
-
             advance_paid = request.POST.get('advance_paid')  # Will be 'paid' or 'not_paid'
 
             # Initialize fields
@@ -528,7 +2122,6 @@ def Govt_Cust(request):
                 current_load = request.POST.get('Bill_unit')
                 loadsancution = request.POST.get('loadsancution')
 
-
             if city_name == "Other" and new_city_name:
                 # Check if the new city already exists in the database
                 existing_city = Customer.objects.filter(City=new_city_name).first()
@@ -542,19 +2135,57 @@ def Govt_Cust(request):
             else:
                 team1 = 1
 
-            new_cust = Customer(Cust_id=Cust_id, Comp_name=Comp_name, Consumer=Consumer, current_load=current_load,
-                                Address=Address, Plant_Capacity=Plant_Capacity, Ups_Soft=Ups_Soft, Cust_type=Cust_type,
-                                City=city_name, email=email, phone=phone, solar_comp=solar_comp,
-                                UPSC=UPSC, Emp_id=Emp_id, state=state, Pincode=Pincode, new_customer=user, loadsancution=loadsancution, po_date=po_date, po_order=po_order,
-                                Engg_Assign=team1, qunt_solar=qunt_solar, qunt_inv=qunt_inv, sol_warranty=sol_warranty, inv_warranty=inv_warranty, com_warranty=com_warranty,
-                                project_type=project_type, solar_pump=solar_pump, pump_qunt=pump_qunt, pump_warranty=pump_warranty, phase=phase,  advance_paid=advance_paid)
+            new_cust = Customer(
+                Cust_id=Cust_id,
+                Comp_name=Comp_name,
+                Consumer=Consumer,
+                current_load=current_load,
+                Address=Address,
+                Plant_Capacity=Plant_Capacity,
+                Ups_Soft=Ups_Soft,
+                Cust_type=Cust_type,
+                City=city_name,
+                email=email,
+                phone=phone,
+                solar_comp=solar_comp,
+                UPSC=UPSC,
+                Emp_id=Emp_id,
+                state=state,
+                Pincode=Pincode,
+                new_customer=user,
+                loadsancution=loadsancution,
+                po_date=po_date,
+                po_order=po_order,
+                Engg_Assign=team1,
+                qunt_solar=qunt_solar,
+                qunt_inv=qunt_inv,
+                sol_warranty=sol_warranty,
+                inv_warranty=inv_warranty,
+                com_warranty=com_warranty,
+                project_type=project_type,
+                solar_pump=solar_pump,
+                pump_qunt=pump_qunt,
+                pump_warranty=pump_warranty,
+                phase=phase,
+                advance_paid=advance_paid
+            )
             new_cust.save()
+
+            # If this customer was created from a quotation conversion, mark the quotation converted
+            quotation_id = request.GET.get('quotation_id') or request.POST.get('quotation_id') or \
+                           (request.session.get('quotation_data', {}) or {}).get('quotation_id')
+            if quotation_id:
+                try:
+                    Quotation.objects.filter(pk=quotation_id).update(convert_consumer=True)
+                except Exception as e:
+                    print(f"Failed to mark quotation {quotation_id} as converted: {e}")
+
 
             # After saving Customer, create related Result entry
             result = Result.objects.create(
-                consumer=Comp_name,  # Or any other field like customer name
-                consumer_id=new_cust,  # Link to newly created Customer
-                AssignTo=Emp_id if isinstance(Emp_id, User) else None  # Assign the engineer if available
+                consumer=Comp_name,
+                consumer_id=new_cust,
+                AssignTo=Emp_id if isinstance(Emp_id, User) else None
             )
             result.save()
 
@@ -569,19 +2200,15 @@ def Govt_Cust(request):
                     'engineers': engineers,
                     'cities': cities,
                 }
-                return render(request , 'customer/Govt_Cust.html', context)
-            return HttpResponse("Form is not valid")  # Add this line
-           # return HttpResponseRedirect(request, 'customer/Govt_Cust.html', context)
-    else:
-        form = UserCreationForm()
-        context = {
-            'form': form,
-            'count1': count1,
-            'notification1': notification1,
-            'engineers': engineers,
-            'cities': cities,
-        }
-        return render(request, 'customer/Govt_Cust.html', context)
+                return render(request, 'customer/Govt_Cust.html', context)
+        else:
+            context['form'] = form
+            return render(request, 'customer/Govt_Cust.html', context)
+
+    # GET REQUEST
+    form = UserCreationForm()
+    context['form'] = form
+    return render(request, 'customer/Govt_Cust.html', context)
 
 
 @login_required(login_url='user-login')
@@ -2303,13 +3930,13 @@ from django.utils import timezone
 
 import pytz
 from django.utils import timezone
-from datetime import datetime
-import datetime
+# from datetime import datetime
+
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils.timezone import make_aware
-import datetime
+
 import pytz
 
 
@@ -2419,7 +4046,7 @@ def complete_mseb_view(request):
 
 
 import json
-import datetime
+# import datetime
 import pytz
 from django.utils import timezone
 from django.http import JsonResponse
@@ -2433,18 +4060,18 @@ logger = logging.getLogger(__name__)
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from .models import MSEB, Customer
-import datetime
+# import datetime
 from django.utils import timezone
 
 from django.http import JsonResponse
 import json
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-import datetime
+# import datetime
 
 
 import json
-import datetime
+# import datetime
 from django.shortcuts import get_object_or_404, render
 from django.http import JsonResponse
 from django.utils import timezone
@@ -2530,10 +4157,28 @@ def get_mseb_data(request):
         for field in fields:
             field_name = f"{field}_ok"
             created_at_field = f"{field}_date"
+            date_value = getattr(mseb_instance, created_at_field, None)
+            
+            # Handle date formatting - check if it's a datetime object or string
+            # Use try/except for robustness in case hasattr returns True but strftime fails
+            if date_value:
+                try:
+                    # Try to format as datetime - will work if it's a datetime object
+                    if isinstance(date_value, str):
+                        # Already a string, use as is
+                        formatted_date = date_value
+                    else:
+                        # Try to format as datetime
+                        formatted_date = date_value.strftime('%Y-%m-%d %H:%M:%S')
+                except (AttributeError, TypeError):
+                    # If strftime doesn't work, convert to string
+                    formatted_date = str(date_value) if date_value else None
+            else:
+                formatted_date = None
+            
             mseb_data[field_name] = {
-                'value': getattr(mseb_instance, field),
-                'created_at': getattr(mseb_instance, created_at_field).strftime('%Y-%m-%d %H:%M:%S') if getattr(
-                    mseb_instance, created_at_field) else None,
+                'value': getattr(mseb_instance, field, None),
+                'created_at': formatted_date,
             }
 
 
@@ -3121,23 +4766,21 @@ def solar_pump_entry(request):
                         serial_no = request.POST.getlist('serial_no[]')
                         model_numbers = request.POST.getlist('pump_company[]')
                         capacities = request.POST.getlist('pump_hp[]')
-                        new_entries = []
+                        # Use individual save() instead of bulk_create to ensure database generates id
+                        # bulk_create doesn't always respect database defaults for primary keys
                         for i in range(len(serial_no)):
                             if serial_no[i]:
-                                new_entries.append(
-                                    SolarPump(
-                                        consumer_id=selected_customer,
-                                        serial_no=serial_no[i],
-                                        pump_company=model_numbers[i] if i < len(model_numbers) else "",
-                                        pump_hp=capacities[i] if i < len(capacities) else "",
-                                        consumer=selected_customer.Comp_name,
-                                        item_type='Water Pump',
-                                        AssignTo=selected_customer.new_customer,
-                                        AssignBy=request.user,  # Now safe because @login_required ensures authenticated user
-                                        created_at=timezone.now()
-                                    )
+                                SolarPump.objects.create(
+                                    consumer_id=selected_customer,
+                                    serial_no=serial_no[i],
+                                    pump_company=model_numbers[i] if i < len(model_numbers) else "",
+                                    pump_hp=capacities[i] if i < len(capacities) else "",
+                                    consumer=selected_customer.Comp_name,
+                                    item_type='Water Pump',
+                                    AssignTo=selected_customer.new_customer,
+                                    AssignBy=request.user,  # Now safe because @login_required ensures authenticated user
+                                    created_at=timezone.now()
                                 )
-                        SolarPump.objects.bulk_create(new_entries)
                         # Fix: consumer_id is a ForeignKey, so use the Customer object, not Cust_id
                         total_pumps = SolarPump.objects.filter(consumer_id=selected_customer).count()
                         result_entry, created = Result.objects.get_or_create(
@@ -3379,25 +5022,21 @@ def controller_entry(request):
                         serial_no = request.POST.getlist('serial_no[]')
                         model_numbers = request.POST.getlist('pump_company[]')
                         capacities = request.POST.getlist('pump_hp[]')
-
-                        new_entries = []
+                        # Use individual create() instead of bulk_create to ensure database generates id
+                        # bulk_create doesn't always respect database defaults for primary keys
                         for i in range(len(serial_no)):
                             if serial_no[i]:
-                                new_entries.append(
-                                    Controller(
-                                        consumer_id=selected_customer,
-                                        serial_no=serial_no[i],
-                                        pump_company=model_numbers[i] if i < len(model_numbers) else "",
-                                        pump_hp=capacities[i] if i < len(capacities) else "",
-                                        consumer=selected_customer.Comp_name,
-                                        item_type='Controller',
-                                        AssignTo=selected_customer.new_customer,
-                                        AssignBy=request.user,  # Now safe because @login_required ensures authenticated user
-                                        created_at=timezone.now()
-                                    )
+                                Controller.objects.create(
+                                    consumer_id=selected_customer,
+                                    serial_no=serial_no[i],
+                                    pump_company=model_numbers[i] if i < len(model_numbers) else "",
+                                    pump_hp=capacities[i] if i < len(capacities) else "",
+                                    consumer=selected_customer.Comp_name,
+                                    item_type='Controller',
+                                    AssignTo=selected_customer.new_customer,
+                                    AssignBy=request.user,  # Now safe because @login_required ensures authenticated user
+                                    created_at=timezone.now()
                                 )
-
-                        Controller.objects.bulk_create(new_entries)
 
                         # Recalculate counts and update result entry using customer object
                         total_controllers = Controller.objects.filter(consumer_id=selected_customer).count()

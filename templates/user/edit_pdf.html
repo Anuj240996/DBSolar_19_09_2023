@@ -21,6 +21,20 @@
         margin-right: 10px; /* Add space to the right of the label */
         font-weight: bold;
     }
+
+          /* Style for active fieldsets */
+    .active-fieldset {
+        background-color: #d3dbec; /* Gray background color for active fieldsets */
+         border-color: blue; /* Change the border color to red for active fieldsets */
+         border: 2px solid darkblue;
+    }
+
+    /* Style for deactivated fieldsets */
+    fieldset {
+        background-color: #ffffff; /* White background color for deactivated fieldsets */
+        border-color: blue; /* Change the border color to red for active fieldsets */
+    }
+
 </style>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -29,12 +43,23 @@
         var searchButton = document.getElementById('search-button');
         var checkboxes = document.querySelectorAll('input[type="checkbox"]');
         var errorMessage = document.getElementById('max-fields-error');
+        var fieldsets = document.querySelectorAll('fieldset');
 
         checkboxes.forEach(function (checkbox) {
             checkbox.addEventListener('change', function () {
                 var selectedCheckboxes = Array.from(checkboxes).filter(function (checkbox) {
                     return checkbox.checked;
                 });
+
+                // Toggle the active-fieldset class based on the number of selected checkboxes
+               // fieldsets.forEach(function (fieldset) {
+                 //   if (selectedCheckboxes.length >= minFields && selectedCheckboxes.length <= maxFields) {
+                   //     fieldset.classList.add('active-fieldset');
+                   // } else {
+                    //    fieldset.classList.remove('active-fieldset');
+                   // }
+               // });
+
 
                 if (selectedCheckboxes.length < minFields) {
                     searchButton.disabled = true;
@@ -51,6 +76,20 @@
             });
         });
 
+        // Add click event listener to fieldsets
+        fieldsets.forEach(function (fieldset) {
+            fieldset.addEventListener('click', function () {
+                // Remove the 'active-fieldset' class from all fieldsets
+                fieldsets.forEach(function (fs) {
+                    fs.classList.remove('active-fieldset');
+                });
+
+                // Add the 'active-fieldset' class to the clicked fieldset
+                this.classList.add('active-fieldset');
+            });
+        });
+
+
         // Add a submit event listener to the form
         var form = document.querySelector('form');
         form.addEventListener('submit', function (event) {
@@ -64,13 +103,16 @@
         });
     });
 </script>
+
   <br>
    <form method="post">
       {% csrf_token %}
-      <h3>Select fields to include in PDF:</h3>
-      <table style="width: 100%">
-         <tr>
-            <td colspan="3">
+    <h3>Select fields to filter in PDF:</h3>
+    <fieldset>
+           <legend>Filter and Select Fields:</legend>
+
+         <div class="row mb-1 align-items-center">
+              <div class="col-md-4 mb-2 item1">
                <label for="userType">Filter Users:</label>
                <select id="userType" name="userType">
                   <option value="all">All Users</option>
@@ -78,22 +120,28 @@
                   <option value="staff">Staff</option>
                   <!--                        <option value="active">Consumer</option>-->
                </select>
-            </td>
-         </tr>
-         <tr>
-            <td>
+              </div>
+         </div>
+    </fieldset>
+         <br>
+     <h3>Select fields to include in PDF:</h3>
+       <h3 id="max-fields-error" style="color: red; display: none;"></h3>
+            <div class="row mb-1 align-items-center">
+              <div class="col-md-4 mb-2 item1">
                <!--           <label><input type="checkbox" name="profile_fields" value="customer_id" checked hidden>-->
                <fieldset>
                   <legend>User Fields:</legend>
+                  <div class="checkbox-column">
                      <label class="checkbox-label"><input type="checkbox" class="checkbox-input" name="user_fields" value="username" checked> Username<p><span style="color: red; font-size: 25px;">*</span></p>
                      </label><br>
                      <label class="checkbox-label"><input type="checkbox" class="checkbox-input" name="user_fields" value="email"> Official Email ID</label><br>
                      <label class="checkbox-label"><input type="checkbox" class="checkbox-input" name="user_fields" value="full_name"> Full Name</label><br>
                      <label class="checkbox-label"><input type="checkbox" class="checkbox-input" name="profile_fields" value="workphone"> Official Contact No.</label><br>
                      <!-- Add more user fields here -->
+                  </div>
                </fieldset>
-            </td>
-            <td>
+            </div>
+            <div class="col-md-4 mb-2 item1">
                <fieldset>
                   <legend>Profile Fields:</legend>
                   <div class="checkbox-column">
@@ -104,8 +152,8 @@
                      <!-- Add more profile fields here -->
                   </div>
                </fieldset>
-            </td>
-            <td>
+            </div>
+            <div class="col-md-4 mb-2 item1">
                <fieldset>
                   <legend>Address Fields:</legend>
                   <div class="checkbox-column">
@@ -116,10 +164,29 @@
                      <!-- Add more profile fields here -->
                   </div>
                </fieldset>
-            </td>
-         </tr>
-      </table>
-      <button type="submit" id="search-button" disabled>Generate PDF</button>
+            </div>
+            </div>
+
+
+
+       <br>
+<div class="row mb-1">
+         <div class="btn-block col-md-6">
+                   <button type="submit" id="search-button" style="width: 70%; height: 110%;" disabled>Generate PDF</button>
+         </div>
+    <br><br>
+
+         <div class="btn-block col-md-6">
+            <button type="Reset" href="/" style="width: 70%; height: 110%;">Clear</button>
+         </div>
+</div>
+<br>
+
+
+
+
+
+
    </form>
-   <h3 id="max-fields-error" style="color: red; display: none;"></h3>
+
    {% endblock %}

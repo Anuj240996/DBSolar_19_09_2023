@@ -40,8 +40,8 @@ html, body {
       .banner {
       position: relative;
       height: 100px;
-      background-image:url("/static/images/img2.jpg");
-      background-image:url(/static/Images/img2.jpg);
+      background-image:url("/home/anujdeshmukh24/DBSolar_19_09_2023/DBSolar_19_09_2023/static/images/img2.jpg");
+      background-image:url('/home/anujdeshmukh24/DBSolar_19_09_2023/DBSolar_19_09_2023/static/Images/img2.jpg');
       background-size: cover;
       display: flex;
       justify-content: center;
@@ -71,8 +71,11 @@ html, body {
       width: calc(100% - 12px);
       padding: 5px;
       }
-      .item1:hover p, .item1:hover i, .question:hover p, .question label:hover, input:hover::placeholder {
+      .item1:hover p, .item1:hover i, .question:hover p, input:hover::placeholder {
       color:  #fff;
+      }
+      .question label:hover {
+      color:  green;
       }
       .item1 input:hover, .item1 select:hover, .item1 textarea:hover {
       border: 1px solid transparent;

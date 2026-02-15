@@ -36,17 +36,6 @@ class Order(models.Model):
         return f'{self.customer}-{self.name}'
 
 
-    # product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
-    # staff = models.ForeignKey(User, models.CASCADE, null=True)
-    # order_quantity = models.PositiveIntegerField(null=True)
-    # date = models.DateTimeField(auto_now_add=True)
-    #
-    # class Meta:
-    #     verbose_name_plural = 'Order'
-    #
-    # def __str__(self):
-    #   return f'{self.product} ordered by {self.staff.username}'
-
 class staff_Notification(models.Model):
     staff_id = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.CharField(max_length=200)

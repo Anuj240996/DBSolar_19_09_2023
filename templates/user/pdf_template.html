@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load static %}
 <html>
 <head>
     <title>Generated PDF</title>
@@ -34,7 +35,9 @@
 <div class="container-fluid">
     <div class="card-body">
         <div class="row mt-1">
-            <img src="media/static/images/dblogo2001.png" style="width: 450px; height: 40px;">
+            <img src="/static/images/dblogo2001.png" style="width: 450px; height: 40px;">
+            <!--<img src="{% static logo_path %}" alt="Logo">-->
+
         </div>
     </div>
 </div>

@@ -166,11 +166,11 @@ Version      : 1.0
 			wheelStep: 10,
 			touchScrollStep: 100
 		});
-		var wHeight = $(window).height() - 60;
+		var wHeight = $(window).height() - 0;
 		$slimScrolls.height(wHeight);
 		$('.sidebar .slimScrollDiv').height(wHeight);
 		$(window).resize(function() {
-			var rHeight = $(window).height() - 60;
+			var rHeight = $(window).height() - 0;
 			$slimScrolls.height(rHeight);
 			$('.sidebar .slimScrollDiv').height(rHeight);
 		});

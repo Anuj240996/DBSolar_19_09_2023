@@ -4,103 +4,13 @@
 {% block content %}
 {% if user.is_authenticated and user.is_staff and user.is_superuser %}
         {% include 'partials/topside_main.html' %}
-        <div class="row">
-            <div class="col-md-6 my-4">
-                <div class="bg-white">
-                    <div class="card-body">
-                        <canvas
-                                id="myChart1" width="400" height="300"></canvas>
-                        <script>
-                            var ctx = document.getElementById('myChart1').getContext('2d');
-                            var myChart1 = new Chart(ctx, {
-                                type: 'pie',
-                                data: {
-                                    labels: [{% for customer in customer %} '{{customer.first_name}}', {% endfor %}],
-                            datasets: [{
-                                label: 'Number of Products',
-                                data: [{% for customer in customer %} '{{ product.Plant_Capacity }}', {% endfor %}],
-                                backgroundColor: [
-                                    'rgba(255, 99, 132, 1)',
-                                    'rgba(54, 162, 235, 1)',
-                                    'rgba(255, 206, 86, 1)',
-                                    'rgba(75, 192, 192, 1)',
-                                    'rgba(153, 102, 255, 1)',
-                                    'rgba(255, 159, 64, 1)'
-                                ],
-                                    borderColor: [
-                                        'rgba(255, 99, 132, 1)',
-                                        'rgba(54, 162, 235, 1)',
-                                        'rgba(255, 206, 86, 1)',
-                                        'rgba(75, 192, 192, 1)',
-                                        'rgba(153, 102, 255, 1)',
-                                        'rgba(255, 159, 64, 1)'
-                                    ],
-                                        borderWidth: 1
-                            }]
-                                },
-                            options: {
-                                scales: {
-                                    yAxes: [{
-                                        ticks: {
-                                            beginAtZero: true
-                                        }
-                                    }]
-                                }
-                            }
-                            });
-                        </script>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 my-4">
-                <div class="bg-white">
-                    <div class="card-body">
-                        <canvas id="myChart" width="400" height="300"></canvas>
-                        <script>
-                            var ctx = document.getElementById('myChart').getContext('2d');
-                            var myChart = new Chart(ctx, {
-                                type: 'bar',
-                                data: {
-                                    labels: [{% for customer in customer %} '{{customer.Comp_name}}',{% endfor %}],
-                            datasets: [{
-                                label: 'Orders',
-                                data: [{% for customer1 in customer1 %} {{ customer1.Plant_Capacity }}, {% endfor %}],
-                                backgroundColor: [
-                                    'rgba(255, 99, 132, 1)',
-                                    'rgba(54, 162, 235, 1)',
-                                    'rgba(255, 206, 86, 1)',
-                                    'rgba(75, 192, 192, 1)',
-                                    'rgba(153, 102, 255, 1)',
-                                    'rgba(255, 159, 64, 1)'
-                                ],
-                                    borderColor: [
-                                        'rgba(255, 99, 132, 1)',
-                                        'rgba(54, 162, 235, 1)',
-                                        'rgba(255, 206, 86, 1)',
-                                        'rgba(75, 192, 192, 1)',
-                                        'rgba(153, 102, 255, 1)',
-                                        'rgba(255, 159, 64, 1)'
-                                    ],
-                                        borderWidth: 1
-                            }]
-                                },
-                            options: {
-                                scales: {
-                                    yAxes: [{
-                                        ticks: {
-                                            beginAtZero: true
-                                        }
-                                    }]
-                                }
-                            }
-                            });
-                        </script>
-                    </div>
-                </div>
-            </div>
-        </div>
-    {% elif user.is_authenticated and user.is_staff %}
+    {% elif user.is_authenticated and user.is_staff and user.profile.department == 'Stockist' %}
 
+        <script type="text/javascript">
+            window.location.href = "{% url 'home' %}";  // Redirect to the 'home' URL
+        </script>
+
+    {% elif user.is_authenticated and user.is_staff %}
         <div class="content container-fluid">
                <div class="page-header">
                   <div class="row">
@@ -142,7 +52,7 @@
                               </div>
                               <div class="db-info">
                                  <h3>{{totalontheway1}}</h3>
-                                 <h6>Team On The Way</h6>
+                                 <h6>In Progress</h6>
                               </div>
                            </div>
                         </div>
@@ -209,5 +119,113 @@
     {% else %}
         {% include 'index.html' %}
     {% endif%}
+
+<!--&lt;!&ndash; Add this code to display the value of password_check &ndash;&gt;-->
+<!--<p>Password Check: {{ password_check }}</p>-->
+
+<!-- change_password_modal.html -->
+
+<!-- Modal -->
+<!--<div class="modal fade" id="changePasswordModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordModalLabel">-->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordModalLabel" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="changePasswordModalLabel">Change Password</h5>
+      </div>
+      <div class="modal-body">
+        <!-- Form to change the password -->
+          <!-- Form to change the password -->
+<section class="content">
+    <div class="content-header">
+    </div>
+
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- left column -->
+            <div class="col-md-12">
+                <!-- general form elements -->
+                <div class="card card-primary">
+                    <div class="card-header">
+<!--                        <h3 class="card-title">Change Password</h3>-->
+                        <div style="color: red;"><h6 style="color: red;">Note :-</h6>You are logged in with your temporary password. Please reset your password as its mandatory for security purpose.</div>
+                    </div>
+
+                    <!-- form start -->
+                    <form method="post" name="changepassword" onsubmit="return checkpassword()">
+                        {% csrf_token %}
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>Temporary Password</label><span style="color: red;">*</span>
+                                <input type="password" name="oldpassword" class="form-control" placeholder="Enter Temporary Password" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>New Password</label><span style="color: red;">*</span>
+                                <input type="password" name="newpassword" class="form-control" placeholder="Enter New Password" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Confirm Password</label><span style="color: red;">*</span>
+                                <input type="password" name="confirmpassword" class="form-control" placeholder="Enter Confirm Password" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    function checkpassword(){
+    if(document.changepassword.newpassword.value!=document.changepassword.confirmpassword.value){
+    alert('New Password and Confirm Password field does not Match');
+    document.changepassword.confirmpassword.focus();
+    return false;
+    }
+    return true;
+    }
+</script>
+
+{% if error == "no" %}
+<script>
+    alert('Password updated successfully');
+    window.location=('{% url 'user-login' %}');
+</script>
+{% endif %}
+{% if error == "yes" %}
+<script>
+    alert('Something went wrong , try again later');
+</script>
+{% endif %}
+
+{% if error == "not" %}
+<script>
+    alert('Your current password is wrong');
+</script>
+{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Include jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Include Bootstrap JavaScript -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+$(document).ready(function() {
+  if ({{ password_check|lower }}) {
+    $('#changePasswordModal').modal('show');
+  }
+});
+</script>
+
 {% endblock %}
 

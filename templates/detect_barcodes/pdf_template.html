@@ -58,16 +58,24 @@
       <div class="container-fluid">
          <div class="card-body">
             <div class="row mt-1">
-               <img src="media/static/images/dblogo2001.png" style="width: 450px; height: 40px;">
+               <img src="/static/images/dblogo2001.png" alt="DB Logo" style="width: 450px; height: 40px;">
+               <!--<img src="{{ STATIC_URL }}images/dblogo2001.png" style="width: 450px; height: 40px;">-->
+               <!--<img src="{{ MEDIA_URL }}static/images/dblogo2001.png" style="width: 450px; height: 40px;">-->
+               <img src="/static/images/DB SOLAR PNG LOGO 3 (6).png" alt="Logo" width="100%">
+               <img src="{% static 'images/dblogo2001.png' %}" style="width: 450px; height: 40px;">
+              <img src="data:image/png;base64,{{ image_base64 }}" alt="Image">
+              <img src="{{ image_url }}" style="width: 450px; height: 40px;">
+
+
                <div class="compartment">
                   <table class="table">
                      <tr>
                         <td style="text-align: left; padding: 1 5 0 2px; margin-left: 5px;">
-                           <b>Consumer :</b> {{ items.0.company }}
-                           <br>
-                           <b>Address :</b> {{ profile.address }}
-                           <br>
-                           <b>City :</b> {{ profile.city }}
+                            <b>Consumer :</b> {{ items.0.company|title }}
+                            <br>
+                            <b>Address :</b> {{ customer.Address|title }}
+                            <br>
+                            <b>City :</b> {{ customer.City|title }}
                         </td>
                         <td style="text-align: left; padding: 0 5 0 2px; margin-left: 5px;">
                            <b>Invoice Number :</b> {{ invoice_number }}
@@ -108,38 +116,76 @@
                      <br>
                      <table>
                         <thead>
-                           <tr>
+                          {% if selected_no == "barcode" %}
+                            <tr>
                               <th>Serial No</th>
-                              <!--                            <th>Module Type</th>-->
                               <th>Barcode No</th>
                               <th>Panel Barcode</th>
                               <th>Serial No</th>
-                              <!--                            <th>Module Type</th>-->
                               <th>Barcode No</th>
-                              <th>Panel Barcode</th>
-                           </tr>
+                               <th>Panel Barcode</th>
+                            </tr>
+                          {% else %}
+                              <tr style="width: 100%;">
+                              <th>Serial No</th>
+                              <th>Barcode No</th>
+                                 <th></th>
+                              <th>Serial No</th>
+                              <th>Barcode No</th>
+                                 <th></th>
+                            </tr>
+                          {% endif %}
+
+
                         </thead>
                         <tbody>
                            {% for pair in solar_items %}
-                           <tr>
-                              {% for item_data in pair %}
-                              {% if item_data.item %}
-                              <td>{{ item_data.serial_number }}</td>
-                              <td>{{ item_data.item.barcode_data }}</td>
-                              <td>
-                                 {% if item_data.item.barcode_type == 'CODE39' %}
-                                 <img src="{{ item_data.item.image.path }}" alt="Barcode">
-                                 {% else %}
-                                 <img src="{{ item_data.item.barcode_path.path }}" alt="Barcode">
-                                 {% endif %}
-                              </td>
-                              {% else %}
-                              <td colspan="3"></td>
-<!--                              <td></td>-->
-<!--                              <td></td>-->
-                              {% endif %}
-                              {% endfor %}
-                           </tr>
+                             {% if selected_no == "barcode" %}
+                                 <tr>
+                                    {% for item_data in pair %}
+                                      {% if item_data.item %}
+                                          <td>{{ item_data.serial_number }}</td>
+                                          <td>{{ item_data.item.barcode_data }}</td>
+      <!--                                    {% if selected_no == "barcode" %}-->
+                                             <td>
+                                                 {% if item_data.item.barcode_type == 'CODE39' %}
+                                                    <img src="{{ item_data.item.image.path }}" alt="Barcode">
+                                                 {% elif item_data.item.barcode_path %}
+                                                     {% if item_data.item.barcode_path.url %}
+                                                         <img src="{{ item_data.item.barcode_path.path }}" alt="Barcode">
+                                                     {% else %}
+                                                         <p>No barcode image</p>
+                                                     {% endif %}
+                                                 {% else %}
+                                                     <p>No barcode information</p>
+                                                 {% endif %}
+                                             </td>
+
+
+
+      <!--                                    {% endif %}-->
+                                      {% else %}
+                                         <td colspan="3"></td>
+      <!--                              <td></td>-->
+      <!--                              <td></td>-->
+                                      {% endif %}
+                                    {% endfor %}
+                                 </tr>
+                             {% else %}
+                                 <tr>
+                                    {% for item_data in pair %}
+                                      {% if item_data.item %}
+                                          <td>{{ item_data.serial_number }}</td>
+                                          <td>{{ item_data.item.barcode_data }}</td>
+                                         <td></td>
+                                      {% else %}
+                                         <td colspan="3"></td>
+      <!--                              <td></td>-->
+      <!--                              <td></td>-->
+                                      {% endif %}
+                                    {% endfor %}
+                                 </tr>
+                             {% endif %}
                            {% endfor %}
                         </tbody>
                      </table>
@@ -176,31 +222,57 @@
                      {% if inverter_panel_total_quantity == 1 %}
                      <table>
                         <thead>
-                           <tr>
-                              <th>Serial No</th>
-                              <th>Barcode No</th>
-                              <th>Inverter Barcode</th>
-                           </tr>
+                          {% if selected_no == "barcode" %}
+                              <tr>
+                                 <th>Serial No</th>
+                                 <th>Barcode No</th>
+                                 <th>Inverter Barcode</th>
+                              </tr>
+                          {% else %}
+                              <tr>
+                                 <th>Serial No</th>
+                                 <th>Barcode No</th>
+                                 <th></th>
+                              </tr>
+
+                          {% endif %}
                         </thead>
                         <tbody>
                            {% for item in inverter_items %}
-                           <tr>
-                              <td>{{ forloop.counter }}</td>
-                              <td>{{ item.barcode_data }}</td>
-                              <td>
-                                 {% if item.barcode_type == 'CODE39' %}
-                                 <img src="{{ item.image.path }}" alt="Barcode">
-                                 {% else %}
-                                 <img src="{{ item.barcode_path.path }}" alt="Barcode">
-                                 {% endif %}
-                              </td>
-                           </tr>
+                             {% if selected_no == "barcode" %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ item.barcode_data }}</td>
+
+                                      <td>
+                                                 {% if item.barcode_type == 'CODE39' %}
+                                                    <img src="{{ item.image.path }}" alt="Barcode">
+                                                 {% elif item.barcode_path %}
+                                                     {% if item.barcode_path.url %}
+                                                         <img src="{{ item.barcode_path.path }}" alt="Barcode">
+                                                     {% else %}
+                                                         <p>No barcode image</p>
+                                                     {% endif %}
+                                                 {% else %}
+                                                     <p>No barcode information</p>
+                                                 {% endif %}
+                                             </td>
+
+                                 </tr>
+                             {% else %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ item.barcode_data }}</td>
+                                    <td></td>
+                                 </tr>
+                             {% endif %}
                            {% endfor %}
                         </tbody>
                      </table>
                      {% elif inverter_panel_total_quantity > 1 %}
                      <table>
                         <thead>
+                           {% if selected_no == "barcode" %}
                            <tr>
                               <th>Serial No</th>
                               <th>Barcode No</th>
@@ -209,28 +281,64 @@
                               <th>Barcode No</th>
                               <th>Panel Barcode</th>
                            </tr>
+
+                           {% else %}
+                            <tr>
+                              <th>Serial No</th>
+                              <th>Barcode No</th>
+                              <th></th>
+                              <th>Serial No</th>
+                              <th>Barcode No</th>
+                              <th></th>
+                           </tr>
+                           {% endif %}
                         </thead>
                         <tbody>
                            {% for pair in inverter_items1 %}
-                           <tr>
-                              {% for item_data in pair %}
-                              {% if item_data.item %}
-                              <td>{{ item_data.serial_number }}</td>
-                              <td>{{ item_data.item.barcode_data }}</td>
-                              <td>
-                                 {% if item_data.item.barcode_type == 'CODE39' %}
-                                 <img src="{{ item_data.item.image.path }}" alt="Barcode">
-                                 {% else %}
-                                 <img src="{{ item_data.item.barcode_path.path }}" alt="Barcode">
-                                 {% endif %}
-                              </td>
+                              {% if selected_no == "barcode" %}
+                                <tr>
+                                    {% for item_data in pair %}
+                                    {% if item_data.item %}
+                                    <td>{{ item_data.serial_number }}</td>
+                                    <td>{{ item_data.item.barcode_data }}</td>
+
+                                      <td>
+                                                 {% if item_data.item.barcode_type == 'CODE39' %}
+                                                    <img src="{{ item_data.item.image.path }}" alt="Barcode">
+                                                 {% elif item_data.item.barcode_path %}
+                                                     {% if item_data.item.barcode_path.url %}
+                                                         <img src="{{ item_data.item.barcode_path.path }}" alt="Barcode">
+                                                     {% else %}
+                                                         <p>No barcode image</p>
+                                                     {% endif %}
+                                                 {% else %}
+                                                     <p>No barcode information</p>
+                                                 {% endif %}
+                                             </td>
+
+                                    {% else %}
+                                    <td colspan="3"></td>
+      <!--                              <td></td>-->
+      <!--                              <td></td>-->
+                                    {% endif %}
+                                    {% endfor %}
+                                 </tr>
                               {% else %}
-                              <td colspan="3"></td>
-<!--                              <td></td>-->
-<!--                              <td></td>-->
+                                  <tr>
+                                       {% for item_data in pair %}
+                                       {% if item_data.item %}
+                                       <td>{{ item_data.serial_number }}</td>
+                                       <td>{{ item_data.item.barcode_data }}</td>
+                                       <td></td>
+                                       {% else %}
+                                       <td colspan="3"></td>
+         <!--                              <td></td>-->
+         <!--                              <td></td>-->
+                                       {% endif %}
+                                       {% endfor %}
+                                    </tr>
                               {% endif %}
-                              {% endfor %}
-                           </tr>
+
                            {% endfor %}
                         </tbody>
                      </table>

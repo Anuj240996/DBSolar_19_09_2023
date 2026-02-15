@@ -1,0 +1,15 @@
+{% extends "partials/base.html" %}
+{% block title %}Leads Settings{% endblock %}
+{% block content %}
+<div class="container-fluid mt-3">
+  <h3>Leads Settings</h3>
+  <ul>
+    <li><a href="{% url 'admin:leads_stage_changelist' %}">Lead Stages</a> <span class="badge badge-pill">{{ counts.stages }}</span></li>
+    <li><a href="{% url 'admin:leads_leadsource_changelist' %}">Lead Sources</a> <span class="badge badge-pill">{{ counts.sources }}</span></li>
+    <li><a href="{% url 'admin:leads_campaign_changelist' %}">Campaigns</a> <span class="badge badge-pill">{{ counts.campaigns }}</span></li>
+    <li><a href="{% url 'admin:leads_lostreason_changelist' %}">Lost Reasons</a> <span class="badge badge-pill">{{ counts.lost_reasons }}</span></li>
+    <li><a href="{% url 'admin:leads_scoringrule_changelist' %}">Scoring Rules</a> <span class="badge badge-pill">{{ counts.scoring_rules }}</span></li>
+  </ul>
+</div>
+{% endblock %}
+
